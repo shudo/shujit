@@ -35,7 +35,7 @@ import java.util.Properties;	// for some properties
  */
 public class VMAddress implements ByValue {
   /**
-   * JVM $B$,BT$D%G%U%)%k%H$N%]!<%HHV9f!#(B
+   * JVM が待つデフォルトのポート番号。
    */
   private static int VMPort = 10050;
   protected static int classLoaderPort;
@@ -187,14 +187,14 @@ public class VMAddress implements ByValue {
 
 
   /**
-   * $B%m!<%+%k%"%I%l%9$rJV$9!#(B
+   * ローカルアドレスを返す。
    */
   public static VMAddress localAddress() {
     return localVMAddress;
   }
 
   /**
-   * $B%m!<%+%k%"%I%l%9$+$I$&$+H=Dj$9$k!#(B
+   * ローカルアドレスかどうか判定する。
    */
   public boolean isLocalAddress() {
     return this.equals(localVMAddress);

@@ -55,12 +55,12 @@ class RemoteClassLoader extends ClassLoader {
   private boolean alwaysLoadNotStandardClassesViaNetwork = true;
 
   /**
-   * $B@\B3@h!"$D$^$j%/%i%9%m!<%I85$N%"%I%l%9(B
+   * 接続先、つまりクラスロード元のアドレス
    */
   private VMAddress sourceAddress;
 
   /**
-   * $B%/%i%9%5!<%P$X$N%3%M%/%7%g%s(B
+   * クラスサーバへのコネクション
    */
   private Socket sock = null;
 
