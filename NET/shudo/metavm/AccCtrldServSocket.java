@@ -31,7 +31,7 @@ import java.io.IOException;
 
 
 /**
- * $B%"%/%;%9@)8f$N$+$+$C$?(B ServerSocket$B!#(B
+ * アクセス制御のかかった ServerSocket。
  */
 public class AccCtrldServSocket extends ServerSocket {
   private AccessController ac = null;
@@ -54,7 +54,7 @@ public class AccCtrldServSocket extends ServerSocket {
 
 
   /**
-   * $B%"%/%;%9@)8f$5$l$k(B accept()$B!#(Boverrides ServerSocket#accept()$B!#(B
+   * アクセス制御される accept()。overrides ServerSocket#accept()。
    *
    * @see java.net.ServerSocket#accept()
    */
