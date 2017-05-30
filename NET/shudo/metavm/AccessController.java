@@ -39,9 +39,9 @@ import java.util.StringTokenizer;
 
 
 /**
- * $B%M%C%H%o!<%/7PM3$N%"%/%;%9$r@)8f$9$k%/%i%9!#(B<BR>
+ * ネットワーク経由のアクセスを制御するクラス。<BR>
  * {allow,deny} [{hostname,IPaddress}[/netmask][:port] [username]]<BR>
- * $B8=:_!"%]!<%HHV9f$O;H$C$F$$$J$$!#(B
+ * 現在、ポート番号は使っていない。
  */
 public class AccessController {
   public static final boolean DEFAULT_POLICY = true;	// true means allow
@@ -77,7 +77,7 @@ public class AccessController {
     while ((aLine = din.readLine()) != null) {
       StringTokenizer tokenizer = new StringTokenizer(aLine, " ,\t\n\r");
       int numToken = tokenizer.countTokens();
-      if (numToken <= 0)  continue;	// $B6u9T(B
+      if (numToken <= 0)  continue;	// 空行
       String[] args = new String[numToken];
       int numArgs = args.length;
 
@@ -87,14 +87,14 @@ public class AccessController {
       }
 
 
-      // $B2r@O(B
+      // 解析
       boolean allow;
       InetAddress address = null;
       int netmask = 0;
       int port = 0;
       String user = null;
 
-      if (args[0].startsWith("#") || args[0].startsWith(";"))	// $B%3%a%s%H9T(B
+      if (args[0].startsWith("#") || args[0].startsWith(";"))	// コメント行
 	continue;
 
       // allow or deny
@@ -181,13 +181,13 @@ public class AccessController {
 
 
   /**
-   * $B@\B3$rG'>Z$9$k!#(B
+   * 接続を認証する。
    */
   public boolean allow(Socket sock) {
-    // IP address $B$r<hF@(B
+    // IP address を取得
     InetAddress addr = sock.getInetAddress();
 
-    // $B%f!<%6(BID $B$r<hF@(B
+    // ユーザID を取得
     SocketAuthenticator id = null;
     String user = null;
     try {
@@ -202,12 +202,12 @@ public class AccessController {
 
 
   /**
-   * $B@\B3$rG'>Z$9$k!#(B
+   * 接続を認証する。
    */
   public boolean allow(InetAddress addr, String user) {
     boolean result = DEFAULT_POLICY;
 
-    // $BG'>Z(B
+    // 認証
     
     for (int i = restrictionTable.length - 1; i >= 0; i--) {
       AccessControlEntry entry = restrictionTable[i];
@@ -230,7 +230,7 @@ System.out.println(entry + " [doesn't suits] " + addr.getHostAddress()
 
 
   /**
-   * $B%"%/%;%9@)8fI=$N0l%(%s%H%j!#(B
+   * アクセス制御表の一エントリ。
    */
   static class AccessControlEntry {
     protected boolean allow = false;
