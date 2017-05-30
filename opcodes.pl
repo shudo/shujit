@@ -37,7 +37,7 @@ while (<OPCODES_LIST>) {
 	$push	= $_[3];
 
 	if ($opcode =~ /^#/ || !$opcode) {
-		# コメント行 or 空行
+		# comment line or empty line
 		next;
 	}
 
@@ -60,12 +60,12 @@ print OPCODES_H "\n";
 print OPCODES_H "extern " . $opcode_len_type . " opcode_length[];\n";
 
 print OPCODES_C $opcode_len_type . " opcode_length[] = { ";
-#print OPCODES_C "($opcode_len_type)";	# 型
+#print OPCODES_C "($opcode_len_type)";	# type
 print OPCODES_C shift(@opcode_length);
 while (@opcode_length) {
 	$length = shift(@opcode_length);
 	print OPCODES_C ", ";
-#	print OPCODES_C "($opcode_len_type)";	# 型
+#	print OPCODES_C "($opcode_len_type)";	# type
 	print OPCODES_C "$length";
 }
 print OPCODES_C " };\n";
