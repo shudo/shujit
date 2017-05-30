@@ -85,17 +85,17 @@ any later version. See LGPL.txt for more details.
 
 Thanks all folks around me and especially the following people:
 
-Takuzo O'hara <takuzo@sm.sony.co.jp>                   (compilation on FreeBSD)
-Hideaki Takahashi <htaka@nalgo.co.jp>                    (bug report and debug)
-Keishiro Tanaka <ksr@lp.nm.fujitsu.co.jp>                     (test on FreeBSD)
-Ryo Neyama <neyama@jp.ibm.com>                                  (test on Linux)
-Toshitaka Miura <miura@computer.org>                   (preparation of FreeBSD)
-Jun'ya Kato <kato@goto.info.waseda.ac.jp>              (preparation of FreeBSD)
-Fuyuhiko Maruyama <fuyuhik8@is.titech.ac.jp>              (discussion and code)
-Toshihiko Shimokawa <toshi@csce.kyushu-u.ac.jp>        (preparetion of FreeBSD)
-Keizo Maeda <keizo@toolhouse.jp>                                      (porting)
-and my wife Mari.
+Takuzo O'hara <takuzo at sm.sony.co.jp>                (compilation on FreeBSD)
+Hideaki Takahashi <htaka at nalgo.co.jp>                 (bug report and debug)
+Keishiro Tanaka <ksr at lp.nm.fujitsu.co.jp>                  (test on FreeBSD)
+Ryo Neyama <neyama at jp.ibm.com>                               (test on Linux)
+Toshitaka Miura <miura at computer.org>                (preparation of FreeBSD)
+Jun'ya Kato <kato at goto.info.waseda.ac.jp>           (preparation of FreeBSD)
+Fuyuhiko Maruyama <fuyuhik8 at is.titech.ac.jp>           (discussion and code)
+Toshihiko Shimokawa <toshi at csce.kyushu-u.ac.jp>     (preparetion of FreeBSD)
+Keizo Maeda <keizo at toolhouse.jp>                                   (porting)
+and my deceased wife Mari.
 
 
 Kazuyuki Shudo/首藤一幸   私をたばねないで あらせいとうの花のように
-  shudo@computer.org   http://www.shudo.net/
+  shudo at computer.org   http://www.shudo.net/
