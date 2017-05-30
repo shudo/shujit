@@ -1,15 +1,15 @@
-_quick $B5?;wL?Na$X$NJQ49(B
+_quick 疑似命令への変換
 
 [quickFieldAccess() in interpreter.c]
 
 getfield
   if (offset >= 256) || UseLosslessQuickOpcodes
     getfield_quick_w
-  else if (long $B$+(B double)
+  else if (long か double)
     getfield2_quick
   else
     getfield_quick
-putfield	getfield $B$HF1$8A*BrJ}K!(B
+putfield	getfield と同じ選択方法
   putfield_quick
   putfield2_quick
   putfield_quick_w
@@ -17,18 +17,18 @@ putfield	getfield $B$HF1$8A*BrJ}K!(B
 [quickStaticAccess() in interpreter.c]
 
 getstatic
-  if (long $B$+(B double)
+  if (long か double)
     getstatic2_quick
   else
     getstatic_quick
-putstatic	getstatic $B$HF1$8A*BrJ}K!(B
+putstatic	getstatic と同じ選択方法
   putstatic_quick
   putstatic2_quick
 
 [quickInvocation() in interpreter.c]
 
 invokespecial
-  if ($BF10l%/%i%9$KBP$9$k8F$S=P$7(B)
+  if (同一クラスに対する呼び出し)
     invokenonvirtual_quick
   else
     invokesuper_quick
@@ -39,7 +39,7 @@ invokevirtual
     invokenonvirtual_quick
   else if (offset >= 256) || UseLosslessQuickOpcodes
     invokevirtual_quick_w
-  else if java.lang.Object $B$N%a%=%C%I$G$"$k(B
+  else if java.lang.Object のメソッドである
     invokevirtualobject_quick
   else
     invokevirtual_quick
@@ -47,7 +47,7 @@ invokevirtual
 [makeReturnResult() in inline.c]
 
 invoke*?
-  if $B8F$S=P$7ITMW(B
+  if 呼び出し不要
     invokeignored_quick
 
 [executeJava()]

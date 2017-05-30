@@ -1,4 +1,4 @@
-$B@8@.%3!<%I$N%5%$%:(B
+生成コードのサイズ
 
 methodhead (eb, 235)
   1f (31)
@@ -7,7 +7,7 @@ exception_handler (ec, 236)
 methodtail (ed, 237)
   9 (9)
 
-1. $B<!$N%/%i%9$G%F%9%H(B
+1. 次のクラスでテスト
   class DoNothing {
     public static void main(String[] argv) {
     }
@@ -15,14 +15,14 @@ methodtail (ed, 237)
 
 % javac -g -O DoNothing.java
 
-[1998$BG/(B 9$B7n(B 21$BF|(B]
+[1998年 9月 21日]
 num of byte code inst:   29599
 byte code size (byte):   59544
 native code size (byte): 1069178
 native code size / num of inst:    36.1221
 native code size / byte code size: 17.9561
 
-[2000$BG/(B 9$B7n(B 6$BF|(B (0.6.5 + 1.1.8v1)]
+[2000年 9月 6日 (0.6.5 + 1.1.8v1)]
 num of compiled method:  537
 num of byte code inst:   26215
 byte code size (byte):   57146
@@ -30,7 +30,7 @@ native code size (byte): 640519
 native code size / num of inst:    24.43330154
 native code size / byte code size: 11.20846603
 
-[2000$BG/(B 9$B7n(B 19$BF|(B (0.6.7 + 1.1.8v1)]
+[2000年 9月 19日 (0.6.7 + 1.1.8v1)]
 num of compiled method:  598
 num of byte code inst:   29132
 byte code size (byte):   63522
@@ -38,7 +38,7 @@ native code size (byte): 666932
 native code size / num of inst:    22.8934505
 native code size / byte code size: 10.49922861
 
-[2001$BG/(B 11$B7n(B 30$BF|(B (0.7.9 + 1.1.8v3, systhreshold=1)]
+[2001年 11月 30日 (0.7.9 + 1.1.8v3, systhreshold=1)]
 num compiled method: 470
 num bytecode:        27179
 size bytecode:       59772
@@ -53,14 +53,14 @@ all generated / size bytecode:    13.20345647
 
 % java DoNothing
 
-[1998$BG/(B 9$B7n(B 21$BF|(B]
+[1998年 9月 21日]
 num of byte code inst:   346
 byte code size (byte):   590
 native code size (byte): 12053
 native code size / num of inst:    34.8353
 native code size / byte code size: 20.4288
 
-[2000$BG/(B 9$B7n(B 6$BF|(B (0.6.5 + 1.1.8v1)]
+[2000年 9月 6日 (0.6.5 + 1.1.8v1)]
 num of compiled method:  14
 num of byte code inst:   329
 byte code size (byte):   590
@@ -68,7 +68,7 @@ native code size (byte): 7143
 native code size / num of inst:    21.7112462
 native code size / byte code size: 12.10677966
 
-[2000$BG/(B 9$B7n(B 19$BF|(B (0.6.7 + 1.1.8v1)]
+[2000年 9月 19日 (0.6.7 + 1.1.8v1)]
 num of compiled method:  14
 num of byte code inst:   329
 byte code size (byte):   590
@@ -76,7 +76,7 @@ native code size (byte): 6870
 native code size / num of inst:    20.88145897
 native code size / byte code size: 11.6440678
 
-[2001$BG/(B 11$B7n(B 30$BF|(B (0.7.9 + 1.1.8v3, systhreshold=1)]
+[2001年 11月 30日 (0.7.9 + 1.1.8v3, systhreshold=1)]
 num compiled method: 13
 num bytecode:        327
 size bytecode:       586
@@ -89,7 +89,7 @@ all generated / num bytecode:     26.99082569
 all generated / size bytecode:    15.06143345
 
 
-2. E2 $B0E9f2=(B
+2. E2 暗号化
 
 % java EvalLargeData
 

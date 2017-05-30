@@ -18,6 +18,6 @@ OpenJIT 1.1.15	18.494	4.53
 sunwjit		8.059	10.4
 interpreter	8.025	10.45
 
-$B4D6-(B:
+環境:
   glibc-2.2.2-10, gcc-2.95.2-4k10, gcc-java-2.95.2-4k10, gcc-libgcj-2.95.2-4k10
-GCJ $B$N%3!<%I(B, IBM JDK 1.1.8 $B$,%O%s%0%"%C%W!#(B
+GCJ のコード, IBM JDK 1.1.8 がハングアップ。

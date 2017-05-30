@@ -3,14 +3,14 @@ TOSHIBA Dynabook SS 3000
 	glibc2.0.7
 
 
-[TYA $BIUB0$N$b$N(B]
+[TYA 付属のもの]
 			plain	TYA12v3	990120	990201
 Sieve			98	317	398	423	times
 TestOpcodeField		4062	1311	1309	1205	msec
 TestOpcodeStatic	3095	429	258	258	msec
 TestFinalStatic		12298	2104(*)	1116(*)	772(*)	msec
 Iview Valetta.jpg	441	465	631	567	msec
-	(*) $B$P$i$D$/(B
+	(*) ばらつく
 
 
 [Linpack Benchmark -- Java Version]
@@ -18,7 +18,7 @@ plain	TYA12v3	990104	990201
 1.956	5.049	4.213	4.459
 
 
-[E2 1MB $B0E9f2=(B]
+[E2 1MB 暗号化]
 java EvalLargeData
 
 	plain	TYA12	990104
@@ -58,7 +58,7 @@ Graphics605	571	605	617
 Image	320	312	324	342
 Dialog	71	65	65	63
 CM3	735	699	732	821
-	(*) EXCEPTIONS_BY_SIGNALS $B$r(B #undef
+	(*) EXCEPTIONS_BY_SIGNALS を #undef
 
 shuJIT
 	990209	990806	990815	990827

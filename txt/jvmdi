@@ -1,9 +1,9 @@
 JVMDI
 
-- JNI $B$KDI2C$5$l$?7?(B
+- JNI に追加された型
   jthread
   jthreadGroup
   jframeID
-    $B%9%?%C%/%U%l!<%`$R$H$D$rI=$9%]%$%s%?(B
+    スタックフレームひとつを表すポインタ
   jlocation
-    64bit, $B%a%=%C%ICf$N(B executable position
+    64bit, メソッド中の executable position

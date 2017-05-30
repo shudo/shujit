@@ -1,71 +1,71 @@
-$B<B9T;~%3%s%Q%$%i$K$h$k(B Java $B2>A[%^%7%s$NJ,;6%*%V%8%'%/%HBP1~(B
+実行時コンパイラによる Java 仮想マシンの分散オブジェクト対応
 
 todo
-  - $B1s3V8F$S=P$7$NJV$jCM$,$-$A$s$HLa$k$h$&$K$9$k!#(B
-    64 bit $BCM$,2x$7$$!#(B
-  - $B%M%$%F%#%V%a%=%C%I$r1s3V;2>H$KBP1~$5$;$k!#(B
+  - 遠隔呼び出しの返り値がきちんと戻るようにする。
+    64 bit 値が怪しい。
+  - ネイティブメソッドを遠隔参照に対応させる。
     - Object#getClass(), Class#getClassLoader(), ...
-    - $BBP1~$,I,MW$J%M%$%F%#%V%a%=%C%I$rD4$Y$k!#(B
-  - $B<B9T$4$H(B(?) $B$N%/%i%9%m!<%@$rMQ0U$7!"(B
-    JVM $BFb$N%/%i%9Dj5A$rGK4~$G$-$k$h$&$K$9$k!#(B
+    - 対応が必要なネイティブメソッドを調べる。
+  - 実行ごと(?) のクラスローダを用意し、
+    JVM 内のクラス定義を破棄できるようにする。
 
-$B%"%$%G%#%"(B
-  - $B%$%s%9%?%s%9@8@.@h$rJL%9%l%C%I$+$i%3%s%H%m!<%k!#(B
-    MetaVM#instantiationVM(Thread, VMAddress) $B$NMQ0U!#(B
-  - DSM $B$N<B8=(B
-    $BG[Ns$rJ#?t(B JVM $B$K$^$?$,$C$F3NJ]$G$-$k$h$&$K$9$k!#(B
-    $B%-%c%C%7%e%W%m%H%3%k!"%V%m%C%/C10L$NE>Aw$J$I!#(B
+アイディア
+  - インスタンス生成先を別スレッドからコントロール。
+    MetaVM#instantiationVM(Thread, VMAddress) の用意。
+  - DSM の実現
+    配列を複数 JVM にまたがって確保できるようにする。
+    キャッシュプロトコル、ブロック単位の転送など。
 
-$B5DO@(B
-  - $BG[Ns$N07$$!#(B
-    - $B$9$Y$F$NG[Ns$r(B not copyable$B!"1s3V;2>H2DG=$K$7$?!#(B
-        -> $B1s3V8F$S=P$7;~!"0z?t$NG[Ns(B (Object[]) $B$,(B Proxy $B$K$J$C$F:$$C$?!#(B
-    - $B;2>H7?$NG[Ns(B ([L..., [[...) $B$r(B copyable $B$K!"(B
-      primitive type $B$NG[Ns$r(B not copyable $B$K$7$?!#(B
-        -> System.out.println(int$B7?(B) -> ... -> Integer#toString(int)
-             -> String#<init> -> System#arraycopy $B$G(B ArrayStoreException$B!#(B
-    - $BG[Ns$N1s3V;2>H$O$"$^$j<BMQE*$G$O$J$$!#(B
-      $BIQHK$K4JC1$K8F$P$l$k(B java.lang.System#arraycopy() $B$G:$$k$N$G!#(B
-    - $B4pK\7?$NG[Ns$@$1$O1s3V;2>H2DG=!"$r4pK\$K$7$?!#(B
-    - $B:F$S!"$9$Y$F$NG[Ns$r1s3V;2>H2DG=$K$7$?!#(B
-      $B;2>H7?$NG[Ns$,(B copyable $B$@$H!"(B
-      $BC10l(B JVM $B$G$N<B9T$H%;%^%s%F%#%/%9$,JQ$o$k$3$H$,$"$k$?$a!#(B
-  - $B1s3V$KEO$5$l$k:]$K(B proxy $B$KJQ2=$5$;$:$K%3%T!<$7$F$7$^$&>r7o!#(B
-    VMAddress $B$H$=$N%a%s%P(B InetAddress $B$O(B proxy $B$KJQ2=$5$;$:$K%3%T!<$7$?$$!#(B
-    Serializable -> stateless $B$H2>Dj$7$F$7$^$&$N$OL5M}$,$"$k!#(B
-  - $BJ,;6%a%b%j7?JBNs7W;;5!>e$N(B JVM $B$H8+Jo$;$k!#(B
-  - $B%a%=%C%I8F$S=P$7$@$1%5%]!<%H$9$k0lHLE*$J(B ORB $B$h$jF)2a@-$,9b$$!#(B
-    $B%M%C%H%o!<%/F)2a@-$OI,MW$+!#(B
+議論
+  - 配列の扱い。
+    - すべての配列を not copyable、遠隔参照可能にした。
+        -> 遠隔呼び出し時、引数の配列 (Object[]) が Proxy になって困った。
+    - 参照型の配列 ([L..., [[...) を copyable に、
+      primitive type の配列を not copyable にした。
+        -> System.out.println(int型) -> ... -> Integer#toString(int)
+             -> String#<init> -> System#arraycopy で ArrayStoreException。
+    - 配列の遠隔参照はあまり実用的ではない。
+      頻繁に簡単に呼ばれる java.lang.System#arraycopy() で困るので。
+    - 基本型の配列だけは遠隔参照可能、を基本にした。
+    - 再び、すべての配列を遠隔参照可能にした。
+      参照型の配列が copyable だと、
+      単一 JVM での実行とセマンティクスが変わることがあるため。
+  - 遠隔に渡される際に proxy に変化させずにコピーしてしまう条件。
+    VMAddress とそのメンバ InetAddress は proxy に変化させずにコピーしたい。
+    Serializable -> stateless と仮定してしまうのは無理がある。
+  - 分散メモリ型並列計算機上の JVM と見倣せる。
+  - メソッド呼び出しだけサポートする一般的な ORB より透過性が高い。
+    ネットワーク透過性は必要か。
 
-$BC10l(B VM $B$G$N<B9T$H$N0c$$(B
-  - class $B%*%V%8%'%/%H$,%^%7%s$4$H$KB8:_$9$k!#(B
-    static field $B$NFbMF$,(B VM $B$4$H$K0[$J$jF@$k!#(B
-    static initializer $B$,8F$P$l$k%?%$%_%s%0!#(B
-  - native methods $B$+$i$N%"%/%;%9(B
-    $BNc(B: reflection API, java.lang.System#arraycopy()
-    class $B%*%V%8%'%/%H(B -> Class#getClass()$B!#(B
-    Proxy $B%*%V%8%'%/%H$,(B Proxy $B$H$7$F8+$($k!#(B
-  - $B1s3V;2>H$K$J$i$:$K%3%T!<$5$l$k%$%s%9%?%s%9!#(B
+単一 VM での実行との違い
+  - class オブジェクトがマシンごとに存在する。
+    static field の内容が VM ごとに異なり得る。
+    static initializer が呼ばれるタイミング。
+  - native methods からのアクセス
+    例: reflection API, java.lang.System#arraycopy()
+    class オブジェクト -> Class#getClass()。
+    Proxy オブジェクトが Proxy として見える。
+  - 遠隔参照にならずにコピーされるインスタンス。
     Throwable, String, InetAddress, Number, Boolean, Character
-  - $B%W%m%0%i%`$N=*N;>r7o(B
-    $BDL>o$O!"Hs(B daemon $B%9%l%C%I$,$J$/$J$C$?;~E@!#(B
-  - $B$"$i$f$k%*%V%8%'%/%H$,(B implements java.io.Serializable $B$H$J$k!#(B
-    Java Platform Core API $BI8=`$N%7%j%"%i%$%6$r;H$&$?$a$N@)Ls!#(B
-    Serializable $B$rMW5a$7$J$$%7%j%"%i%$%6(B (i.e. MOBA) $B$r;H$&$H$$$&<j$b$"$k!#(B
+  - プログラムの終了条件
+    通常は、非 daemon スレッドがなくなった時点。
+  - あらゆるオブジェクトが implements java.io.Serializable となる。
+    Java Platform Core API 標準のシリアライザを使うための制約。
+    Serializable を要求しないシリアライザ (i.e. MOBA) を使うという手もある。
 
 
-$B%3%s%Q%$%kJ}K!(B
-  - configure $B;~$K(B --enable-metavm $B%*%W%7%g%s$rIU$1$k!#(B
-  - CLASSPATH $B$K(B MetaVM.jar $B$+(B shujit/ $B$rDI2C$9$k!#(B
-  - libshujit.so $B$G$O$J$/(B libmetavm.so $B$,F@$i$l$k!#(B
+コンパイル方法
+  - configure 時に --enable-metavm オプションを付ける。
+  - CLASSPATH に MetaVM.jar か shujit/ を追加する。
+  - libshujit.so ではなく libmetavm.so が得られる。
 
-$B;HMQJ}K!(B
-  - CLASSPATH $B$K(B shujit/ $B$^$?$O(B MetaVM.jar $B$rDI2C$9$k!#(B
-  - setenv LD_LIBRARY_PATH <libmetavm.so $B$N$"$k>l=j(B>
+使用方法
+  - CLASSPATH に shujit/ または MetaVM.jar を追加する。
+  - setenv LD_LIBRARY_PATH <libmetavm.so のある場所>
   - setenv JAVA_COMPILER metavm
-  - shujit/metavm/bin/metavm $B$r5/F0$7$F$*$/!#(B
+  - shujit/metavm/bin/metavm を起動しておく。
 
-$B%W%m%Q%F%#(B
+プロパティ
   metavm.hostname
   metavm.port
   metavm.debug
@@ -74,61 +74,61 @@ todo
   metavm.bufsize
 
 
-$B%9%l%C%I$4$H$K;}$?$;$k>pJs(B
-  - Proxy $B7?%*%V%8%'%/%H$,$I$&8+$($k$+$N%U%i%0(B: 1 bit ($B:GDc(B)
-  - $B%$%s%9%?%s%9@8@.>l=j(B (host, port): sizeof(ptr) 4 byte
+スレッドごとに持たせる情報
+  - Proxy 型オブジェクトがどう見えるかのフラグ: 1 bit (最低)
+  - インスタンス生成場所 (host, port): sizeof(ptr) 4 byte
 
-ExecEnv $BCf$NMxMQ2DG=%9%Z!<%9!#(B
+ExecEnv 中の利用可能スペース。
   - alloc_cache.cache_pad <- (char[3])
-    pad $B$J$N$G40A4$K$9$-4V!#(B
+    pad なので完全にすき間。
   - union {
-      exception.exc	JHandle * $B7?(B
-      exception.addr	unsigned char * $B7?(B
+      exception.exc	JHandle * 型
+      exception.addr	unsigned char * 型
     }
-    $BNc30$,(B throw $B$5$l$k$H2u$l$k!#(B
-  - JDK 1.2 $B$N>l9g(B:
+    例外が throw されると壊れる。
+  - JDK 1.2 の場合:
     void *RESERVED1;
     void *RESERVED2;
 
 
-$BCm0U(B
+注意
   - GC
-    - export $BCf$N%*%V%8%'%/%H$,2s<}$5$l$J$$$h$&$K!#(B
-      $BI=$KEPO?!#(Breference count $B$G4IM}!#(B
+    - export 中のオブジェクトが回収されないように。
+      表に登録。reference count で管理。
 
 operation
-  $B%$%s%9%?%s%9$N@8@.(B
-    $BDL>o$N%*%V%8%'%/%H(B(1)
+  インスタンスの生成
+    通常のオブジェクト(1)
       new
-    ($BG[Ns(B)(3)
+    (配列)(3)
       newarray, anewarray, multianewarray
-  $B%"%/%;%9(B
-    $B%U%#!<%k%I(B(2)
+  アクセス
+    フィールド(2)
       getfield, putfield
-    ($BG[Ns(B)(16)
+    (配列)(16)
       [ailfdbcs]aload, [ailfdbcs]astore
-  ($BG[NsD9(B)(1)
+  (配列長)(1)
     arraylength
-  $B%a%=%C%I8F$S=P$7(B(3)
+  メソッド呼び出し(3)
     invoke{virtual,special,interface}
-  $B7?%A%'%C%/(B(2)
+  型チェック(2)
     checkcast, instanceof
-  $B%b%K%?4X78(B(2)
+  モニタ関係(2)
     monitorenter, monitorexit
 
-$B8!F$9`L\(B
-  - $B%/%i%9$N%m!<%I(B
-  - remote reference $B$NF~<jJ}K!(B
-    lookup $B$rMQ0U$9$k$+!)(B
+検討項目
+  - クラスのロード
+  - remote reference の入手方法
+    lookup を用意するか？
 
-$BDL>o$N(B ORB $B$HHf3S(B
-  - remote reference $B$KBP$7$F!"(B
-    $B%a%=%C%I8F$S=P$7$@$1$G$J$/!"%U%#!<%k%I%"%/%;%9$b2DG=!#(B
-  - ($BG[Ns$N(B remote reference $B$b:n$l$k!#(B)
-  - $B7?$K4X$9$k@)Ls$r$J$/$;$k!#(B
-  - stub $B%/%i%9$N@8@.$,ITMW!#(B
-    RMI: rmic, HORB: horbc $B%3%^%s%I!#(B
-    $B$b$C$H$b!"(BVoyager $B$O(B stub $B%/%i%9$r<+F0@8@.$9$k!#(B
-  - $B1s3VA`:n$N@-G=$,9b$$!#(B
-  - $B%m!<%+%k$JA`:n$N@-G=$ODc$$$O$:!#(B
-    $BMWI>2A!#(B
+通常の ORB と比較
+  - remote reference に対して、
+    メソッド呼び出しだけでなく、フィールドアクセスも可能。
+  - (配列の remote reference も作れる。)
+  - 型に関する制約をなくせる。
+  - stub クラスの生成が不要。
+    RMI: rmic, HORB: horbc コマンド。
+    もっとも、Voyager は stub クラスを自動生成する。
+  - 遠隔操作の性能が高い。
+  - ローカルな操作の性能は低いはず。
+    要評価。

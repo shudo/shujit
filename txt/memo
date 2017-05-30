@@ -1,248 +1,248 @@
 Todo
-  - Thread#stop() $BBP1~$N$?$a$K9T$C$F$$$k%k!<%WCf$NNc30%]!<%j%s%0$O(B
-    $B@-G=E*$J%Z%J%k%F%#$,$"$k$?$a!"$3$l$r2r7h$9$k!#(B
-      $B$3$N%]!<%j%s%0$O%^%/%m(B EXC_CHECK_IN_LOOP $B$GM-8z$K$J$k!#(B
-  - Native Threads $B$@$H(B Forte for Java 3.0 CE $B$N5/F0Cf$K(B
-    $BMM!9$J2U=j$G%G%C%I%m%C%/$9$k!#$3$NLdBj$r2r7h$9$k!#(B
-    TYA 1.7v3 $B$d%$%s%?%W%j%?$G$bF1MM!#(B
-      $B!V(BLoading Applet ...$B!W$G$h$/;_$^$k!#(B
-  - SSE2 $BBP1~$N@-G=%F%9%H(B
-    Math.sqrt(), $B;MB'1i;;(B
-  - $BFCDj%a%=%C%I$N(B inlining$B!#(B
-    profiling (javac, Linpack $BEy(B) $B$K4p$E$$$F!#(B
+  - Thread#stop() 対応のために行っているループ中の例外ポーリングは
+    性能的なペナルティがあるため、これを解決する。
+      このポーリングはマクロ EXC_CHECK_IN_LOOP で有効になる。
+  - Native Threads だと Forte for Java 3.0 CE の起動中に
+    様々な箇所でデッドロックする。この問題を解決する。
+    TYA 1.7v3 やインタプリタでも同様。
+      「Loading Applet ...」でよく止まる。
+  - SSE2 対応の性能テスト
+    Math.sqrt(), 四則演算
+  - 特定メソッドの inlining。
+    profiling (javac, Linpack 等) に基づいて。
       System#arraycopy, Object#getClass, Object#hashCode, String#charAt
     Math#sin,cos,..., StringBuffer#append
     % (fmod)
-  - JVM Debugger Interface, JVMProfiler Interface $B$N3F<o%$%Y%s%H$rH/@8$5$;$k!#(B
+  - JVM Debugger Interface, JVMProfiler Interface の各種イベントを発生させる。
     #ifdef HPROF
     if (jvmpi_event_flags & JVMPI_EVENT_METHOD_ENTRY_ON) {
 	jvmpi_method_entry(ee, o);
     }
     #endif /* HPROF */
-  - $B%3%s%Q%$%kCf$N%a%=%C%I$,8F$P$l$?>l9g$NBP:v!#(B
-    $B%$%s%?%W%j%?$G<B9T$5$l!"(B_quick $B$X$NJQ49$,5/$3$j!"(Bpctable $B$H?)$$0c$&62$l!#(B
-  - sysMalloc(), sysRealloc() $B$NNc30=hM}!#(B
-  - Win32, Solaris 2 $B$K0\?"!#(B
-  - UseLosslessQuickOpcodes = FALSE $B$G$h$$$h$&$K$9$k!#(B
-      invokevirtual{,object}_quick $B$GL5M}$,$"$k!#(B
-      $B%$%s%?%W%j%?$K<B9T$5$;$?>l9g$K!"(Boptop $B$,JV$jCM$NJ,A}$d$5$l$J$$(B
-      $B$"$i$+$8$a(B methodblock $B$r<hF@$9$kI,MW$,$"$k$,!"$=$l$,$G$-$J$$!#(B
+  - コンパイル中のメソッドが呼ばれた場合の対策。
+    インタプリタで実行され、_quick への変換が起こり、pctable と食い違う恐れ。
+  - sysMalloc(), sysRealloc() の例外処理。
+  - Win32, Solaris 2 に移植。
+  - UseLosslessQuickOpcodes = FALSE でよいようにする。
+      invokevirtual{,object}_quick で無理がある。
+      インタプリタに実行させた場合に、optop が返り値の分増やされない
+      あらかじめ methodblock を取得する必要があるが、それができない。
 
-$BD4::(B
-  - SignalError() $B$NBh(B 3$B0z?t$H$7$FJ8;zNs$rEO$7$F$$$k$b$N$rD4$Y$"$2$k!#(B
-  - invokeignored_quick $B$X$N=q$-49$(5,B'!#(B
+調査
+  - SignalError() の第 3引数として文字列を渡しているものを調べあげる。
+  - invokeignored_quick への書き換え規則。
 
-$B:GE,2=(B
-  - invokeinterface $B$N@-G=2~A1$N$?$a!"(Binline cache $B$r<BAu!#(B
-    $B$*$h$=!"G\$N9bB.2=(B: 1630 -> 860 ms$B!#(B
-  - $B%9%?%C%/>e$NMWAG$N@-<A(B ($BNc(B: $BG[Ns$N%5%$%:(B) $B$r(B trace $B$7!"(B
-    $B>J$1$k3F<o%A%'%C%/(B ($BNc(B: $BE:;z$NHO0O(B) $B$r>J$/!#2>A[%9%?%C%/%i%$%V%i%j$rMQ0U!#(B
-  - $BFbItL?Na(B direct_invoke $BAjEv$N=hM}$r!"(B
-    compileAndInvokeMethod() (invoker.c) $B$G9T$&!#(B
-  - $BFbItL?Na(B exc_handler $B$N%3!<%I$r(B methodtail $B$NA0$+$i$I$3$+$X0\$7!"(B
-    $B%a%=%C%IKvHx$N(B return $B$G$O%8%c%s%W$rITMW$K$9$k!#(B
-  - $B%a%=%C%I8F$S=P$7$+$iLa$C$?8e$N!"Nc30$NM-L5%A%'%C%/$r>J$/!#(B
-  - $B%$%s%i%$%sE83+!#(B
-    $B%3%s%Q%$%kCf$K!"$=$N%a%=%C%I$,8F$V%a%=%C%I$rESCf$^$G%3%s%Q%$%k!"(B
-    PEI $B$NM-L5$d%3!<%ID9$J$I$rD4$Y$F$*$/!#(B
-  - peephole $B:GE,2=!#(B
+最適化
+  - invokeinterface の性能改善のため、inline cache を実装。
+    およそ、倍の高速化: 1630 -> 860 ms。
+  - スタック上の要素の性質 (例: 配列のサイズ) を trace し、
+    省ける各種チェック (例: 添字の範囲) を省く。仮想スタックライブラリを用意。
+  - 内部命令 direct_invoke 相当の処理を、
+    compileAndInvokeMethod() (invoker.c) で行う。
+  - 内部命令 exc_handler のコードを methodtail の前からどこかへ移し、
+    メソッド末尾の return ではジャンプを不要にする。
+  - メソッド呼び出しから戻った後の、例外の有無チェックを省く。
+  - インライン展開。
+    コンパイル中に、そのメソッドが呼ぶメソッドを途中までコンパイル、
+    PEI の有無やコード長などを調べておく。
+  - peephole 最適化。
     - ldc2_w, flush_cache, dld -> ...
-    - invokeignored_quick $B$X$NJQ49$r?J$a$k!#(B
-    - [ifa]store{,_N}, [ifa]load{,_N} $B$G!"%a%b%j$+$i$NFI$_$@$7$r>J$/!#(B
-    - lcmp, ifXX $B$H$$$C$?DjHV%3!<%INs$K$D$$$F:GE,2=!#(B
-    - $BJ,2r(B
-      iinc -> $B2C;;(B, $B%9%H%"(B ($BB3$/%m!<%I$rAj;&$G$-$k(B)
-      fadd -> $B%m!<%I(B, $B2C;;(B, $B%9%H%"(B ($BA08e$N%9%H%"(B, $B%m!<%I$rAj;&$G$-$k(B)
-  - $BIbF0>.?tE@?t$r(B FPU $B$N%l%8%9%?$K:\$;$?$^$^$K$7$F$*$/!#(B
-    JVM $B$N%l%8%9%?$K:\$;$J$$!#(B
-  - stack $B>e$NG\@:EYIbF0>.?tE@?t$r(B 8$B%P%$%H6-3&$K(B align $B$9$k!#(B
-  - VolanoMark $B$r;n$9!#(B
-  - CM3 $B$KBP$9$k(B compiled code $B$r8+$k!#(B
-  - $B%/%m%C%/?t$r7WB,!#(B
-  - invoke{,Synchronized}JavaMethod() $B$N8F$S=P$72s?t$r8:$i$9!#(B
-      JavaFrame $B$r(B C $B$N%9%?%C%/>e$K3NJ]$9$k!#(B
-      $B>c32(B:
-        JavaFrame $B$N%a%s%P(B ostack $B$H(B optop $B$,F1$8NN0h$K$"$k$3$H$r(B
-        $B2>Dj$7$?%3!<%I$,$"$k!#(B
-        JavaFrame $B$NB8:_$r2>Dj$7$?%3!<%I$,B?$$!#(B
-  - invoke(Synchronized)JavaMethod() $B$NBeBX$rMQ0U!"=hM}$r7Z8:$9$k!#(B
-    $BGSB>@)8f$,I,MW!#(B-> thread library $B$r;H$C$F$7$^$&!#(B
-  - native $BL?NaNs$N=q$-49$(!#(B
-      invoke -> invokevirtual*object* $BAjEv$J$I!#(B
-        obj_array_methodtable() $B$G$O$J$/(B obj_methodtable() $B$,;H$($k!#(B
-  - vars[0..] $B$r%l%8%9%?$K$N$;$F%-%c%C%7%e$9$k!#(B
-  - lookupswitch $BL?Na$N8!:w%"%k%4%j%:%`$r2~NI$9$k!#(B
-  - Address Generation Interlock(AGI) (MMX $BK\(B pp.95,99) $B$rHr$1$k!#(B
-  - invokeignored_quick $B$K$F!"%9%?%C%/$N%-%c%C%7%eFbMF$rL5BL$K(B push $B$7$F$$$k!#(B
+    - invokeignored_quick への変換を進める。
+    - [ifa]store{,_N}, [ifa]load{,_N} で、メモリからの読みだしを省く。
+    - lcmp, ifXX といった定番コード列について最適化。
+    - 分解
+      iinc -> 加算, ストア (続くロードを相殺できる)
+      fadd -> ロード, 加算, ストア (前後のストア, ロードを相殺できる)
+  - 浮動小数点数を FPU のレジスタに載せたままにしておく。
+    JVM のレジスタに載せない。
+  - stack 上の倍精度浮動小数点数を 8バイト境界に align する。
+  - VolanoMark を試す。
+  - CM3 に対する compiled code を見る。
+  - クロック数を計測。
+  - invoke{,Synchronized}JavaMethod() の呼び出し回数を減らす。
+      JavaFrame を C のスタック上に確保する。
+      障害:
+        JavaFrame のメンバ ostack と optop が同じ領域にあることを
+        仮定したコードがある。
+        JavaFrame の存在を仮定したコードが多い。
+  - invoke(Synchronized)JavaMethod() の代替を用意、処理を軽減する。
+    排他制御が必要。-> thread library を使ってしまう。
+  - native 命令列の書き換え。
+      invoke -> invokevirtual*object* 相当など。
+        obj_array_methodtable() ではなく obj_methodtable() が使える。
+  - vars[0..] をレジスタにのせてキャッシュする。
+  - lookupswitch 命令の検索アルゴリズムを改良する。
+  - Address Generation Interlock(AGI) (MMX 本 pp.95,99) を避ける。
+  - invokeignored_quick にて、スタックのキャッシュ内容を無駄に push している。
 
 Idea
-  - JVM $B$N5sF0$rJQ99$9$k<jCJ$H$7$F$N(B JIT compiler$B!#(B
-    javac $B$N!"%U%C%/$r$+$1$i$l$k2U=j$rC5$9!#(B-> Jikes $B$r2~B$!)(B
+  - JVM の挙動を変更する手段としての JIT compiler。
+    javac の、フックをかけられる箇所を探す。-> Jikes を改造？
 
 Done
-  - $B$-$A$s$H(B StackOverflowError $B$r5/$3$9!#(B
-  - $BKvHx:F5"$r%a%=%C%I@hF,$X$N%8%c%s%W$KJQ49!#(B
-  - JMP $BL?Na$N!"(BE9 ($B0z?t(B 4 $B%P%$%H(B) $B$+$i(B EB ($B0z?t(B 1 $B%P%$%H(B) $B$X$N=q$-49$((B
-  - JavaFrame $B$N:n@.$r>J$/!#(B
-  - $B%a%=%C%I8F$S=P$7$N(B overhead $B:o8:!#(B
-    $B%9%?%C%/@Q$_D>$7$r:o8:!#(B
-    native method $B$r8F$V:]$K(B restack $B$r8:$i$;$k!)(B
-    JIT $B$N(B frame $B$K$9$k!#(B
-  - invokevirtual $B$r(B invokespecial $B$KJQ49!#(B
-  - exception_handler $B$N=hM}$r%a%=%C%I$4$H$K%3%T!<$7$J$$$h$&$K$9$k!#(B
-  - $B%k!<%W$N@hF,$r(B 16$B%P%$%H6-3&$K(B align$B!#(B
-  - Object#<init> $B$N8F$S=P$7$r:o=|$9$k!#(B
-      invokeignored_quick $B$X$N(B recode $B>r7o$rD4$Y$k!#(B
-  - java.lang.Math#exp $B$r(B inlining $B$7$J$$$h$&$KLa$9!#(B
-    x86 FPU $B$H(B JDK 1.2 $B$N%$%s%?%W%j%?$G7k2L$,HyL/$K0[$J$k$N$G!#(B
-  - $B%/%i%9$,B8:_$7$J$+$C$?>l9g$K!"(BJIT $B%3%s%Q%$%k$,<:GT$9$k$N$G$O$J$/!"(B
-    ClassNotFoundException, NoClassDefFoundError $B$rH/@8$9$k%3!<%I$r@8@.$9$k!#(B
-  - final $B%U%#!<%k%I$X$N(B putfield, putstatic $B$G(B
-    IllegalAccessError $B$,H/@8$9$k$h$&$K$9$k!#(B
-    $BK\Mh$O(B bytecode verifier $B$,$O$M$k$Y$-!)(B
-  - native methods $B$r(B invoker $B$r7PM3$;$:D>@\8F$S=P$9!#(B
-  - compiled code $B$+$i(B getInterfaceMethod() $B$r8F$S=P$7$?:]$NNc30%A%'%C%/!#(B
+  - きちんと StackOverflowError を起こす。
+  - 末尾再帰をメソッド先頭へのジャンプに変換。
+  - JMP 命令の、E9 (引数 4 バイト) から EB (引数 1 バイト) への書き換え
+  - JavaFrame の作成を省く。
+  - メソッド呼び出しの overhead 削減。
+    スタック積み直しを削減。
+    native method を呼ぶ際に restack を減らせる？
+    JIT の frame にする。
+  - invokevirtual を invokespecial に変換。
+  - exception_handler の処理をメソッドごとにコピーしないようにする。
+  - ループの先頭を 16バイト境界に align。
+  - Object#<init> の呼び出しを削除する。
+      invokeignored_quick への recode 条件を調べる。
+  - java.lang.Math#exp を inlining しないように戻す。
+    x86 FPU と JDK 1.2 のインタプリタで結果が微妙に異なるので。
+  - クラスが存在しなかった場合に、JIT コンパイルが失敗するのではなく、
+    ClassNotFoundException, NoClassDefFoundError を発生するコードを生成する。
+  - final フィールドへの putfield, putstatic で
+    IllegalAccessError が発生するようにする。
+    本来は bytecode verifier がはねるべき？
+  - native methods を invoker を経由せず直接呼び出す。
+  - compiled code から getInterfaceMethod() を呼び出した際の例外チェック。
   - adaptive compilation
-    invocation counter $B$r8+$F%3%s%Q%$%k$r7hDj$9$k!#(B
-  - JDK 1.1 $B$G$b(B static initializer $B$,8F$P$l$k%?%$%_%s%0$r(B JLS $BDL$j$K$9$k!#(B
+    invocation counter を見てコンパイルを決定する。
+  - JDK 1.1 でも static initializer が呼ばれるタイミングを JLS 通りにする。
     Matt Welsh wrote:
     ResolveClassConstant2() with a last argument of 0 (all other arguments the
     same as ResolveClassConstant()) will resolve the class without
     initializing it. Then you can call InitClassConstantClass(cp_item_type *cp,
     unsigned index, struct execenv *ee) to run the initializer later.
-  - $B%/%i%9$r=i4|2=$9$k%?%$%_%s%0$r(B
-    JLS 12.4.1 (When Initialization Occurs) $B$NDL$j$K$9$k!#(Bfirst active use$B!#(B
-    JDK 1.2 $B$N>l9g$N$_2r7h!#(B
-  - CompilerContext $B$r$`$d$_$K(B free(), malloc() $B$7$J$$!#(B
-  - invokeMethod() (runtime.c) $BCf$N=hM}$r(B native code (code.c) $B$K0\$9!#(B
+  - クラスを初期化するタイミングを
+    JLS 12.4.1 (When Initialization Occurs) の通りにする。first active use。
+    JDK 1.2 の場合のみ解決。
+  - CompilerContext をむやみに free(), malloc() しない。
+  - invokeMethod() (runtime.c) 中の処理を native code (code.c) に移す。
     - if (access & ACC_STATIC) obj = (JHandle *)(cbHnadle(method->fb.clazz));
     - cur_frame->lastpc = ...
     - stackpointer += (args_size - 1);
-  - $B%3%s%Q%$%k7k2L$r:FMxMQ$G$-$k$h$&$K$9$k!#%*%W%7%g%s(B codedb$B!#(B
-  - signal $B$rMxMQ$7$F(B null check $B$r>J$/!#(B
-  - class initializer $B$r%3%s%Q%$%k$7$J$$!#(B
-  - java.lang.Compiler#enable(),disable() $B$,F/$/$h$&$K$9$k!#(B
-    Swing 1.1 $B$N(B SwingSet $B$G%F%9%H!#(Bappleviewer SwingSetApplet.html
-  - __{mul,div,mod}di3 $B$r8F$S=P$5$J$$$h$&$K$9$k!#(B
-    64bit $B@0?t$N>h;;!"(B__muldi3 $B$O<+A0$N%3!<%I$rMQ0U$7$?!#(B
-    $B=|!">jM>;;$O(B inline $B$G@8@.$9$k$H%3!<%I%5%$%:$,Bg$-$/$J$C$F$7$^$&!#(B
-  - compiled code $B$N%5%$%:$NI=$r:n@.!"I=<((B
+  - コンパイル結果を再利用できるようにする。オプション codedb。
+  - signal を利用して null check を省く。
+  - class initializer をコンパイルしない。
+  - java.lang.Compiler#enable(),disable() が働くようにする。
+    Swing 1.1 の SwingSet でテスト。appleviewer SwingSetApplet.html
+  - __{mul,div,mod}di3 を呼び出さないようにする。
+    64bit 整数の乗算、__muldi3 は自前のコードを用意した。
+    除、剰余算は inline で生成するとコードサイズが大きくなってしまう。
+  - compiled code のサイズの表を作成、表示
     CODESIZE_DEBUG
-  - invokeignored_quick $B$G(B pc[2] == 0 $B$N>l9g!"(Bnull check $B%3!<%I$r>J$/!#(B
-  - x86 $B$N(B CMOVcc ($B$*$h$S(B FCMOVcc) $B$NE,MQ$r8!F$$9$k!#(B
-    w/ MMX $B$G$J$$(B Pentium $B0JA0$O(B {,F}CMOVcc $B$r;}$?$J$$!#(B
-  - restack $B$r>J$/!#(Bnative method $B$N8F$S=P$7;~$O>J$1$J$$!#(B
-  - native $BL?NaNs$N=q$-49$(!#(B
+  - invokeignored_quick で pc[2] == 0 の場合、null check コードを省く。
+  - x86 の CMOVcc (および FCMOVcc) の適用を検討する。
+    w/ MMX でない Pentium 以前は {,F}CMOVcc を持たない。
+  - restack を省く。native method の呼び出し時は省けない。
+  - native 命令列の書き換え。
     new -> new_quick
-  - boudary check, null check $B$J$I$N=t%A%'%C%/$r>J$$$?HG$b(B
-    $B%3%s%Q%$%k$G$-$k$h$&$K$9$k!#(B
-  - $B%8%c%s%WA0$N(B state $B$+$i%8%c%s%W8e$N(B state $B$X0\9T%3!<%I$,I,MW!#(B
-    tableswitch, lookupswitch $B$O%H%i%s%]%j%sJ}<0$G2r7h!#(B
+  - boudary check, null check などの諸チェックを省いた版も
+    コンパイルできるようにする。
+  - ジャンプ前の state からジャンプ後の state へ移行コードが必要。
+    tableswitch, lookupswitch はトランポリン方式で解決。
 
-strictfp $BBP1~(B
-  - FX!32 $B$d(B SoftWindows $B$G$O$I$&$7$F$$$k$N$+!)(B
-  - $B;29M!#(B
-    significand(mantissa) $B$N@:EY(B
+strictfp 対応
+  - FX!32 や SoftWindows ではどうしているのか？
+  - 参考。
+    significand(mantissa) の精度
 	single: 24, double: 53, extended: 64
-    significand $B$N(Bbit $B?t(B
+    significand のbit 数
 	single: 23, double: 52, extended: 64
-    exponent $B$N(Bbit $B?t(B
+    exponent のbit 数
 	single:  8, double: 11, extended: 15
-  - $B4]$a@:EY$rG\@:EY$K$7$FC1@:EY$N=|;;$r9T$C$F$b!"(B2$BEY4]$a$NLdBj$O5/$3$jF@$J$$!#(B
-    $B<B837k2L(B: JGFNW $B$N?d>)$9$k5;K!$G!"(B
-    0 $B!A(B 0x00ffffff / 0x3f800001 (1.0 + e) and 0x3f7fffff (1.0 - e) $B$G$O!"(B
-    $B4]$a@:EY$,(B single $B$G$b(B double $B$G$b:9$O=P$J$$!#(B
-  - strictfp$B!#(B
-    native methods $B$HN>N)$9$k!)(B
-  - $BBP>]$H$J$k%P%$%H%3!<%IL?Na!#(B
+  - 丸め精度を倍精度にして単精度の除算を行っても、2度丸めの問題は起こり得ない。
+    実験結果: JGFNW の推奨する技法で、
+    0 〜 0x00ffffff / 0x3f800001 (1.0 + e) and 0x3f7fffff (1.0 - e) では、
+    丸め精度が single でも double でも差は出ない。
+  - strictfp。
+    native methods と両立する？
+  - 対象となるバイトコード命令。
     (fadd, dadd, fsub, dsub,) fmul, dmul, fdiv, ddiv, frem, drem
-    frem, drem $B$OBP>]$H$;$:$H$b$h$$!#(Bprecise $B$K7W;;$G$-$k$N$G!#(B
-  - test suite $B$,M_$7$$!#(B
-    overflow, underflow $B$*$h$S$=$l$K5/0x$9$k(B 2$BEY4]$a!#(B
-  - $B%/%i%9$,(B strictfp $B$@$C$?>l9g!"%3%s%9%H%i%/%?$,(B strictfp $B$K$J$k$+3NG'!#(B
-  - javac $B$N(B strictfp $BBP1~!#(B
-    Java 2 SDK 1.3.1 $B$N(B javac $B$G$bBP1~$7$F$$$J$$!#(B
-  - C, Fortran $B$J$I$G(B strictfp$B!#(B
-  - $B;29MJ88%!#(B
+    frem, drem は対象とせずともよい。precise に計算できるので。
+  - test suite が欲しい。
+    overflow, underflow およびそれに起因する 2度丸め。
+  - クラスが strictfp だった場合、コンストラクタが strictfp になるか確認。
+  - javac の strictfp 対応。
+    Java 2 SDK 1.3.1 の javac でも対応していない。
+  - C, Fortran などで strictfp。
+  - 参考文献。
     - Proving the IEEE Correctness of Iterative
       Floating-Point Square Root, Divide, and Remainder Algorithms,
       http://www.intel.co.uk/technology/itj/q21998/articles/art_3.htm
 
-$B0\?";~$NCm0U(B
-  - self modify $B;~$N(B offset
+移植時の注意
+  - self modify 時の offset
     new, invokestatic, {get,put}static{,2}
-  - dynamic link $B4X78(B
-    - $B4X?tL>%7%s%\%k$,(B funcname $B$+(B _funcname $B$+!#(B
-      gentable.rb $B$N5sF0$rJQ$($k!#(B
-    - stdout $B$N(B libc $BCf$N%7%s%\%k!#(B
-      _IO_stdout $B$@$C$?$j(B stdout $B$@$C$?$j!D(B
-    - Linux $B$N$h$&$K!"(Bdlopen(..., RTLD_LAZY) $B$J%i%$%V%i%jCf$N(B
-      $B4X?t$N%"%I%l%9$r4X?t<B9TA0$KF@$i$l$k$+!"(BFreeBSD $B$N$h$&$KF@$i$l$J$$$+!#(B
-        ^- $B$3$N@-<A$K0MB8$7$J$$%3!<%I$K$7$?!#(B
-    - dlopen() $B$G%m!<%I$7$?%i%$%V%i%jCf$N4X?t$N%3!<%I$r=q$-49$($i$l$k$+!#(B
-      Linux (libc5) $B$G$N$_2DG=!#(B
-    - Linux $B$N(B JDK $B$N$h$&$K!"(Blibc $BCf$N4X?t$N%"%I%l%9$r(B sysDynamicLink() $B$G(B
-      $BF@$i$l$k$+!"(BFreeBSD $B$N(B JDK $B$N$h$&$KF@$i$l$J$$$+!#(B
-  - signal $B4X78(B
-    - signal handler $B$N0z?t$H$7$F(B struct sigcontext $B$rF@$i$l$k$+!)(B
-      $BNc(B: JDK for Linux $B$G$OF@$i$l$J$$!#(B
-    - signal handler $B$,8F$P$l$?:]!"$=$N(B signal $B$KBP1~$9$k(B handler $B$,(B
-      $B%j%;%C%H$5$l$k(B (FreeBSD) $B$+H]$+!#%j%;%C%H$5$l$k$J$iMW:F@_Dj!#(B
-    - signal handler $B<B9TCf!"$=$N(B signal $B$,(B
-      block $B$5$l$F$$$k(B (FreeBSD) $B$+H]$+!#(B
-      $B$5$l$F$$$k$J$i(B handler $B$+$i$N%8%c%s%W;~$KMW(B unblock (sigprocmask(2))$B!#(B
+  - dynamic link 関係
+    - 関数名シンボルが funcname か _funcname か。
+      gentable.rb の挙動を変える。
+    - stdout の libc 中のシンボル。
+      _IO_stdout だったり stdout だったり…
+    - Linux のように、dlopen(..., RTLD_LAZY) なライブラリ中の
+      関数のアドレスを関数実行前に得られるか、FreeBSD のように得られないか。
+        ^- この性質に依存しないコードにした。
+    - dlopen() でロードしたライブラリ中の関数のコードを書き換えられるか。
+      Linux (libc5) でのみ可能。
+    - Linux の JDK のように、libc 中の関数のアドレスを sysDynamicLink() で
+      得られるか、FreeBSD の JDK のように得られないか。
+  - signal 関係
+    - signal handler の引数として struct sigcontext を得られるか？
+      例: JDK for Linux では得られない。
+    - signal handler が呼ばれた際、その signal に対応する handler が
+      リセットされる (FreeBSD) か否か。リセットされるなら要再設定。
+    - signal handler 実行中、その signal が
+      block されている (FreeBSD) か否か。
+      されているなら handler からのジャンプ時に要 unblock (sigprocmask(2))。
 
-$BCm5-(B
-  - stack $B>e$NMWAG$,<B9T4D6-0MB8$K$J$k!#(B
-    jsr, ret $BL?Na(B
-  - JVM $B$H(B X86 $B$G%9%?%C%/$N@.D9J}8~$,5U!#(B
-    64bit (long,double) $B$NCM$N(B 32bit x 2 $B$X$NJ,3dJ}K!$O(B
-    JVM $B$N;EMM$H$7$F$OL$Dj5A(B(!)$B!#(B
+注記
+  - stack 上の要素が実行環境依存になる。
+    jsr, ret 命令
+  - JVM と X86 でスタックの成長方向が逆。
+    64bit (long,double) の値の 32bit x 2 への分割方法は
+    JVM の仕様としては未定義(!)。
 
-JVM, JIT compiler $B$N%F%9%H(B
-  - JDK $B$N(B regression test: javasrc/test/
-  - Kaffe $B$N$b$N(B
-  - libgcj $B$N$b$N(B
-  - Mauve $B%W%m%8%'%/%H(B
+JVM, JIT compiler のテスト
+  - JDK の regression test: javasrc/test/
+  - Kaffe のもの
+  - libgcj のもの
+  - Mauve プロジェクト
 
 known bugs
-  - $B2?$+$NM}M3$G%a%=%C%I$N%3%s%Q%$%k$,<:GT$7$?>l9g$K!D(B
-  - $BL58B%k!<%W<B9TCf$N%9%l%C%I$,!"(B
-    $BB>%9%l%C%I$+$i(B Thread#stop() $B$7$F$b<B9TDd;_$7$J$$!#(B
+  - 何かの理由でメソッドのコンパイルが失敗した場合に…
+  - 無限ループ実行中のスレッドが、
+    他スレッドから Thread#stop() しても実行停止しない。
     (genunix/java/green_threads/src/threads_md.c:
-     sysThreadPostException() $B$b8z$+$J$$!#(B)
-    $BB>$N(B JIT (Win32, Sol2) with Green Threads $B$G$O$I$&$+D4$Y$k!#(B
-      TYA 1.0 $B$G$bF1$88=>]$,5/$-$k!#(B
+     sysThreadPostException() も効かない。)
+    他の JIT (Win32, Sol2) with Green Threads ではどうか調べる。
+      TYA 1.0 でも同じ現象が起きる。
 
-TYA 1.4 $B$N(B bugs
-  - $B>e5-(B known bugs$B!#(B:)
-  - final $B%U%#!<%k%I$X$N(B putfield, putstatic $B$G(B
-    IllegalAccessError $B$,H/@8$7$J$$!#(B
-  - IncompatibleChangeError $B$,H/@8$9$Y$->u67$G(B
-    NullPointerException $B$,H/@8$9$k!#(B
-  - $B%/%i%9=i4|2=$N%?%$%_%s%0$,8@8l;EMM$H0[$J$k!#(B
-  - 5 $B<!850J>e$NG[Ns$r:n@.$9$k%3!<%I$r%3%s%Q%$%k$G$-$J$$!#(BJVM $B$4$H=*N;$9$k!#(B
+TYA 1.4 の bugs
+  - 上記 known bugs。:)
+  - final フィールドへの putfield, putstatic で
+    IllegalAccessError が発生しない。
+  - IncompatibleChangeError が発生すべき状況で
+    NullPointerException が発生する。
+  - クラス初期化のタイミングが言語仕様と異なる。
+  - 5 次元以上の配列を作成するコードをコンパイルできない。JVM ごと終了する。
 
 JDK 1.1.6, Version 2 (by Steve Byrne)
   - native method, sun.awt.motif.MChoicePeer#pReshape (IIII)V
     at sun/awt/motif/MChoicePeer#pReshape (IIII)V
     at sun/awt/motif/MComponentPeer#setBounds (IIII)V
     (javasrc/src/genunix/sun/awt_Choice.c l.348)
-    $B$K$F%(%i!<%a%C%;!<%8(B
+    にてエラーメッセージ
       Tried to free bogus memory XXXXXXX, ignored
-    Motif or Xt $B$N%P%0!#(BJDK/README.linux $B$N(B Other issues $B$K5-=R$"$j!#(B
-    JDK/demo/awt-1.1/symboltest/ $B$K$F!"(Bappletviewer index.html $B$G%F%9%H!#(B
+    Motif or Xt のバグ。JDK/README.linux の Other issues に記述あり。
+    JDK/demo/awt-1.1/symboltest/ にて、appletviewer index.html でテスト。
 
-$B5lHG(B ($BL$8x3+(B) $B$N(B bugs
-  - exception_handler $B$K$F!"%9%?%C%/$r%/%j%"$7$?8e!"(B
-    $BNc30%*%V%8%'%/%H$r(B push $B$7$F$$$J$$(B
-  - secondPass() $B$K$F(B goto_w $B$G(B offset $B$r(B 2$B%P%$%H$G2r<a$7$F$$$k!#(B
-  - compileOpcode in compile.c $B$K$F!"(B
-    invokevirtual{,object}_quick $B$NDj?t2r7h$,B-$j$J$$!#(B
-    <- UseLosslessQuickOpcodes = FALSE $B$J$N$G!"<j$r$D$1$h$&$,$J$$!#(B
-  - showObjectBody() in runtime.c $B$,!"(Bnull object $B$KBP1~$7$F$$$J$$!#(B
+旧版 (未公開) の bugs
+  - exception_handler にて、スタックをクリアした後、
+    例外オブジェクトを push していない
+  - secondPass() にて goto_w で offset を 2バイトで解釈している。
+  - compileOpcode in compile.c にて、
+    invokevirtual{,object}_quick の定数解決が足りない。
+    <- UseLosslessQuickOpcodes = FALSE なので、手をつけようがない。
+  - showObjectBody() in runtime.c が、null object に対応していない。
 
-$B3F(B ($BFbIt(B) $BL?Na$G9T$o$l$F$$$k3F<o%A%'%C%/(B
+各 (内部) 命令で行われている各種チェック
   - iaload, laload, baload, caload, saload, iastore, bastore, castore, sastore
 	null, boundary
   - aastore
@@ -264,18 +264,18 @@ JDK 1.1.6, Version 2 (by Steve Byrne)
   - nonnull_quick
 	null
 
-$B3F<o%A%'%C%/$K4X78$9$kFbItL?Na$*$h$S%^%/%m(B in code.c
+各種チェックに関係する内部命令およびマクロ in code.c
   array_check, AASTORE_TEST(), FIELD_ACC(),
   NEW_TEST(), NEWARRAY_TEST(), ARRAYLENGTH_TEST(),
   NULL_TEST()
 
 null check
-  OS $B$N:90[(B
+  OS の差異
     Linux 2.2, 2.1:	struct sigcontext
     Linux 2.0:		struct sigcontext_struct
     FreeBSD:		struct sigcontext
-    $B%l%8%9%?$NJB$S$,(B Linux, FreeBSD $B$G0[$J$k!#(BLinux 2.0, 2.1, 2.2 $B$G$OF1$8!#(B
-  null check (NULL_TEST*) $B$r4^$`L?Na(B
+    レジスタの並びが Linux, FreeBSD で異なる。Linux 2.0, 2.1, 2.2 では同じ。
+  null check (NULL_TEST*) を含む命令
     NULL_TEST
       ARRAY_CHECK
         array_check
@@ -302,82 +302,82 @@ null check
       nonnull_quick
 
 
-$B<B9T4D6-CfN)$J<B9T%3%s%F%/%9%H$N<h$j=P$7(B
+実行環境中立な実行コンテクストの取り出し
   code.c
-    invoke* $B$K$F(B ee->current_frame->lastpc $B$r@_Dj!#(B
+    invoke* にて ee->current_frame->lastpc を設定。
 
 
-$B%"!<%-%F%/%A%c0MB8$N%3!<%I(B
+アーキテクチャ依存のコード
   code.c
   code.h
     assembly code
-    self rewrite $B$N$?$a$N%*%U%;%C%H(B (*_REWRITE_OFFSET)
+    self rewrite のためのオフセット (*_REWRITE_OFFSET)
   gentable.rb
-    compiledCode() in code.c $BCf$NDj?tCj=P!"%*%U%;%C%H7W;;(B
+    compiledCode() in code.c 中の定数抽出、オフセット計算
   compile.c
-    jump $BL?Na$N@8@.(B (in writeForAnOpcode())
+    jump 命令の生成 (in writeForAnOpcode())
   invoker.c
-    $B%9%?%C%/$N@Q$_D>$7(B (JVM -> native)
+    スタックの積み直し (JVM -> native)
   runtime.c
-    $B%9%?%C%/$N@Q$_D>$7(B (native -> JVM)
-$BHs0MB8$N%3!<%I(B
+    スタックの積み直し (native -> JVM)
+非依存のコード
   compiler.[hc]
   computil.c
 
 
-$B%G!<%?9=B$(B
+データ構造
   struct CatchFrame *cf = mb->exception_table;
-    cf->compiled_CatchFrame = (void *)$B%*%U%;%C%H(B in native code;
+    cf->compiled_CatchFrame = (void *)オフセット in native code;
 
 
-$B%3%s%Q%$%k$N<j=g(B
+コンパイルの手順
 
   makePCTable()
-    $BL?Na$NJ,2r(B
-    method head, exc. handler, method tail $B$NIU2C(B
+    命令の分解
+    method head, exc. handler, method tail の付加
     processAnOpcode()
-      $BFbIt(B opcode $B$r5a$a$k(B
-      $BFbIt(B opcode, bytecode PC $B$rI=$KEPO?(B
-      bytecode PC $B$r(B update
+      内部 opcode を求める
+      内部 opcode, bytecode PC を表に登録
+      bytecode PC を update
   makeBlockStructure()
-    basic block $B$r8!=P$9$k(B
+    basic block を検出する
   peepholeOptimization()
-    peephole $B:GE,2=(B
+    peephole 最適化
 
   methodInlining()
   eagerCompilation()
-    invokespecial, static, static_quick $B$N8F$S=P$7@h$r%3%s%Q%$%k(B
-    $B%3%s%Q%$%k$K@.8y$7$?$i!"FbItL?Na(B invoke_core $B$r(B
-    invoke_core_compiled $B$KCV$-49$($k(B
+    invokespecial, static, static_quick の呼び出し先をコンパイル
+    コンパイルに成功したら、内部命令 invoke_core を
+    invoke_core_compiled に置き換える
   updateStates()
-    stack state $B$r@_Dj(B
+    stack state を設定
   writeCode()
     writeForAnOpcode()
-      native code $B$r%P%C%U%!$K=q$/(B
-      jump $BL?Na(B
-	$B>uBVA+0\%3!<%I$rA^F~(B
-	$BI=$KEPO?(B
-      $BDj?t(B (static) $B$r2r7h(B
-      native PC $B$r(B update
+      native code をバッファに書く
+      jump 命令
+	状態遷移コードを挿入
+	表に登録
+      定数 (static) を解決
+      native PC を update
   resolveJumpInstructions()
-    jump $BI=$r2r7h(B
+    jump 表を解決
   resolveExcRetSwitch()
-    $B0J2<$r2r7h(B
+    以下を解決
       bytepcoff
-      exc. handler $B$X$N(B jump
-      method tail $B$X$N(B jump
-      tableswitch, lookupswitch $B$N(B native PC $BI=$r:n@.(B
-  native code $B$r%3%T!<(B
-  (native code $B$rJ]B8(B)
+      exc. handler への jump
+      method tail への jump
+      tableswitch, lookupswitch の native PC 表を作成
+  native code をコピー
+  (native code を保存)
 
   resolveDynamicConstants()
-    $BDj?t(B (dynamic) $B$r2r7h(B
+    定数 (dynamic) を解決
   makeExcTable()
-    $BNc30I=$K(B native PC (offset), handler $B$N=i4|(B state $B$r=q$-9~$`(B
+    例外表に native PC (offset), handler の初期 state を書き込む
   resolveFunctionSymbols()
-    $B4X?t8F$S=P$7$r2r7h(B
+    関数呼び出しを解決
 
-$BDj?t(B
+定数
   bipush
     value
   ldc2_w
@@ -472,14 +472,14 @@ jump
   ifnonnull
     jnz   STR(ADDR_JP)
 
-$B>r7oJ,4t(B
+条件分岐
   ifeq, ne, lt, ge, gt, le
   if_icmpeq, ne, lt, ge, gt, le
   ifnull
   ifnonnull
   tableswitch
   lookupswitch
-$B%8%c%s%W(B
+ジャンプ
   goto
   jsr
 ?
@@ -512,14 +512,14 @@ jmp
 
 ex) ifeq 4 -> 2
   code_ifeq
-    (cmpl $B4^$`(B)
+    (cmpl 含む)
   jne
   state_to2(state:4)
-  jmp $B%8%c%s%W@h(B
+  jmp ジャンプ先
 ex) ifeq 4 -> 4
   code_ifeq
-    (cmpl $B4^$`(B)
-  je $B%8%c%s%W@h(B
+    (cmpl 含む)
+  je ジャンプ先
 
 
 callee head: 8 byte
@@ -538,4 +538,4 @@ callee tail: 7 byte
   c9		leave
   c3		ret
 
-0xYY = 0x100 - 0xXX - (4 * push$B$7$?%l%8%9%??t(B)
+0xYY = 0x100 - 0xXX - (4 * pushしたレジスタ数)

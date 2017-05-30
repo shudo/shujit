@@ -3,7 +3,7 @@ SONY PCG-505EX
 	libc5.4.44
 
 
-[TYA $BIUB0$N$b$N(B]
+[TYA 付属のもの]
 
 * "Linux_JDK_1.1.7_v1a_green_threads"
 			plain	TYA12	981212	981228
@@ -20,7 +20,7 @@ TestOpcodeField		4138	1308	1308	msec
 TestOpcodeStatic	3087	514	278	msec
 TestFinalStatic		11878	5618	5235	msec
 Iview Valetta.jpg	441	463	505	msec
-	FIELD_ACC() $B$+$i(B NULL_TEST() $B$r>J$$$?(B shuJIT $B$G(B TestOpcodeField $B$O(B 1201
+	FIELD_ACC() から NULL_TEST() を省いた shuJIT で TestOpcodeField は 1201
 
 
 [Linpack Benchmark -- Java Version]
@@ -34,7 +34,7 @@ plain	TYA11v4	shuJIT023
 1.918	5.086	5.323
 
 
-[E2 1MB $B0E9f2=(B]
+[E2 1MB 暗号化]
 java EvalLargeData
 
 * 117v1a
@@ -48,7 +48,7 @@ java EvalLargeData
 128	792	304	350(280)	msec
 192	788	307	350(284)	msec
 256	797	303	346(279)	msec
-			()$BFb$O(B NO_CHECK $BHG(B
+			()内は NO_CHECK 版
 
 
 [CaffeineMark 3.0]
@@ -66,7 +66,7 @@ Image	162	267	389
 Dialog	93	86	98
 CM3	392	399	423
 
-TYA	(1.2 $B$+$i(B 117v1a)
+TYA	(1.2 から 117v1a)
 	1.0	1.1	1.1v3	1.2
 Sieve	820	818	817	825
 Loop	1564	1562	1546	1547
@@ -79,7 +79,7 @@ Image	560	281	241	393
 Dialog	95	87	88	93
 CM3	835	759	740	787
 
-shuJIT	(981227 $B$+$i(B 117v1a)
+shuJIT	(981227 から 117v1a)
 	0.2.3	981227	981228
 Sieve	893	892	893
 Loop	1708	1706	1716
@@ -100,7 +100,7 @@ String	1034	1044
 Float	1038	1317	*1
 Method	120	138
 Graphics529	686	*2
-Image	503	226	$B$P$i$D$/(B
+Image	503	226	ばらつく
 Dialog	86	91
 CM3	618	628
-			*1 $B8z2LBg(B *2 $B8z2L$=$3$=$3(B
+			*1 効果大 *2 効果そこそこ

@@ -1,51 +1,51 @@
-[JDK 1.2 $B$G$NJQ99E@(B]
+[JDK 1.2 での変更点]
 
-- JVMDI $B$N@0Hw$K$h$k!"(Bjava_monitor, java_mon() $B$N>C<:!#(B
+- JVMDI の整備による、java_monitor, java_mon() の消失。
 - monitorEnter(obj_monitor(obj)) -> sysMonitorExit(EE2SysThread(ee), obj)
-- JAVA_VERSION, JAVA_MINOR_VERSION $B$,(B 45, 3 -> 46, 0 $B$K!#(B(oobj.h)
+- JAVA_VERSION, JAVA_MINOR_VERSION が 45, 3 -> 46, 0 に。(oobj.h)
 - struct fieldblock
-  $B%a%s%P(B ID $B$,$J$/$J$C$?!#(B
+  メンバ ID がなくなった。
 - struct methodblock
-  char *terse_signature $B$,DI2C!#(B
-  code_length, exception_table_length 4$B%P%$%H(B -> 2$B%P%$%H!#(B
-  nexceptions, exceptions $B$,0\F0!#(B
+  char *terse_signature が追加。
+  code_length, exception_table_length 4バイト -> 2バイト。
+  nexceptions, exceptions が移動。
 - struct Classjava_lang_Class
-  slottable $B$,>C<:!#(B
-  miranda_mehods $B$,DI2C!#(B
-  struct cbhash $B$,>C<:!#<B<AE*$K;H$o$l$F$$$J$+$C$?!#(B
-  slottbl_size $B$,>C<:!#(B
-  protection_domain $B$,DI2C!#(B
-  object_offsets $B0J9_!"B??tDI2C!#(B
-- CCF_* $BJQ99B??t!#(B
-- struct lineno $B$N=L>.!#(Bunsigned long x 2 -> unsigned short x 2
-- struct covtable $B$NJQ99B??t!#(B
-- struct localvar $B$N%5%$%:JQ99!#(B
-- struct CatchFrame $B$N%5%$%:!"%a%s%PJQ99!#(B
+  slottable が消失。
+  miranda_mehods が追加。
+  struct cbhash が消失。実質的に使われていなかった。
+  slottbl_size が消失。
+  protection_domain が追加。
+  object_offsets 以降、多数追加。
+- CCF_* 変更多数。
+- struct lineno の縮小。unsigned long x 2 -> unsigned short x 2
+- struct covtable の変更多数。
+- struct localvar のサイズ変更。
+- struct CatchFrame のサイズ、メンバ変更。
 - CONSTANT_POOL_ARRAY_*
-  LENGTH $B$,(B 4 -> 6
-  CLASSNAME_INDEX:4, SUPERNAME_INDEX:5 $B$,DI2C!#(B
+  LENGTH が 4 -> 6
+  CLASSNAME_INDEX:4, SUPERNAME_INDEX:5 が追加。
 
-- $B0z?t$NJQ99!#(B
+- 引数の変更。
   pc2string(), FixupQuickInvocation()
-  $B%^%/%m(B BINCLASS_{LOCK,UNLOCK}: () -> (self)
+  マクロ BINCLASS_{LOCK,UNLOCK}: () -> (self)
 
-- $B%b%K%?$N<hF@K!(B
+- モニタの取得法
   monitorEnter(obj_monitor(obj)) -> monitorEnter2(ee, obj_monitor(obj))
-  obj_monitor $B$NJV$jCM$N7?$,(B ptr_int -> uintptr_t (Linux $BHGFH<+!)(B)$B!#(B
-  JDK 1.1 for FreeBSD $B$G$OC1$K(B int $B7?!#(B
-  JavaFrame.monitor $B$N7?$,!"(BJHandle * -> struct sys_mon *
+  obj_monitor の返り値の型が ptr_int -> uintptr_t (Linux 版独自？)。
+  JDK 1.1 for FreeBSD では単に int 型。
+  JavaFrame.monitor の型が、JHandle * -> struct sys_mon *
 
-- javac $B%3%^%s%I(B
-  javac -g $B$@$1$G$J$/(B javac -g -O $B$G$b(B LocalVariableTable $B$,IU$/$h$&$K$J$C$?!#(B
+- javac コマンド
+  javac -g だけでなく javac -g -O でも LocalVariableTable が付くようになった。
 
-- shared library $B$r!"(B
-  $B4D6-JQ?t(B LD_LIBRARY_PATH $B$K4^$^$l$k%Q%9$+$iC5$5$J$/$J$C$?!#(B
-  jdk1.2/jre/lib/i386/ $B$+$i$N$_!)(B
+- shared library を、
+  環境変数 LD_LIBRARY_PATH に含まれるパスから探さなくなった。
+  jdk1.2/jre/lib/i386/ からのみ？
 
 - class (static) initializer
-  $B%/%i%9(B resolve $B$5$l$F$b(B InitClass()
-  $B$D$^$j(B InitializeForCompiler() $B$O8F$P$l$J$$!#(B
-  CCIs(cb, Initialized) $B$G%A%'%C%/$G$-$k!#(B
+  クラス resolve されても InitClass()
+  つまり InitializeForCompiler() は呼ばれない。
+  CCIs(cb, Initialized) でチェックできる。
 
-- GC $B$,%l%8%9%?$b%9%-%c%s$9$k$h$&$K$J$C$?!#(B
+- GC がレジスタもスキャンするようになった。
   (scanThread() in gc.c)

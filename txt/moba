@@ -1,36 +1,36 @@
-$B<B9T>uBV$NHsF14|0\Aw$KBP1~$7$?<B9T;~%3%s%Q%$%i(B
-$B%M%$%F%#%V%3!<%I$N<B9T$r5v$90[5!<o4VHsF14|<B9T>uBV0\AwJ}<0(B
+実行状態の非同期移送に対応した実行時コンパイラ
+ネイティブコードの実行を許す異機種間非同期実行状態移送方式
 
 - to be considered
-  - suspend() $B$K$F!"(Bcompiled code $BMQ$N(B suspend $B=hM}$r$9$k$+$7$J$$$+$r(B
-    $B7h$a$kJ}K!!#(B
-    - $B6a$$$&$A$K(B opc_suspend_check $B$,<B9T$5$l$k8+9~$_$,$"$l$P!"(B
-      opc_suspend_check $B8~$1$N=hM}$r9T$&!#(B-> migration safe $B$J(B suspend
-    - migration safe $B$J(B suspend $B$J$k$Y$/9T$$$?$$!#(B
-  - suspend $B$,(B migration safe $B$@$C$?$+$I$&$+$rCN$kJ}K!!#(B
+  - suspend() にて、compiled code 用の suspend 処理をするかしないかを
+    決める方法。
+    - 近いうちに opc_suspend_check が実行される見込みがあれば、
+      opc_suspend_check 向けの処理を行う。-> migration safe な suspend
+    - migration safe な suspend なるべく行いたい。
+  - suspend が migration safe だったかどうかを知る方法。
   - 
 
-- $B<B9T>uBV$NJQ49(B: JVM <-> JIT
-  - $BB>$N%9%l%C%I$K$d$i$;$?J}$,$h$$$+!#(B
-  - externalize $B$@$1$G$J$/!"(Binternalize $B$b9M$($kI,MW$,$"$k!#(B
-    JVM -> JIT $B$NJQ49!#(B
-  - $B%9%?%C%/$N%3%T!<$N$?$a$K!"7?>pJs$,MW$k!#(B64bit $B$+(B 32bit $B$+!#(B
-    reference $B$+B(CM$+!"$rCN$kI,MW$,$"$k$N$O0\Aw%7%9%F%`(B(MOBA) $B$N$_!#(B
+- 実行状態の変換: JVM <-> JIT
+  - 他のスレッドにやらせた方がよいか。
+  - externalize だけでなく、internalize も考える必要がある。
+    JVM -> JIT の変換。
+  - スタックのコピーのために、型情報が要る。64bit か 32bit か。
+    reference か即値か、を知る必要があるのは移送システム(MOBA) のみ。
 
-- suspend $BJ}K!!#(B
-  - MobaThread#suspend(), resume() $B$rMQ0U$9$k!#(B
-  - Thread#suspend(), resume() $B$r$9$2$+$($k!#(B
+- suspend 方法。
+  - MobaThread#suspend(), resume() を用意する。
+  - Thread#suspend(), resume() をすげかえる。
     private native void suspend0();
     private native void resume0();
 
-- $B<B9T>uBV$NJQ49(B (JVM <-> JIT) $B$r9T$&%?%$%_%s%0!#(B
-  - suspend $B$5$l$?;~E@!#(B
-    $B!_(B $BL5BL$KJQ49$r$7$F$7$^$&!#$7$+$7!"$?$$$7$?%*!<%P%X%C%I$G$O$J$$!)(B
-  - JVMDI $B7PM3$N%"%/%;%9$r%U%C%/$9$k!#(B
-    $B!_(B JDK 1.2 $B$G$N$_F0:n!#(B
-    $B!_(B $B%U%C%/$J$s$F2DG=$+!)(B
+- 実行状態の変換 (JVM <-> JIT) を行うタイミング。
+  - suspend された時点。
+    × 無駄に変換をしてしまう。しかし、たいしたオーバヘッドではない？
+  - JVMDI 経由のアクセスをフックする。
+    × JDK 1.2 でのみ動作。
+    × フックなんて可能か？
 
-- JVM $B%G%U%)%k%H$N(B suspend, resume $BJ}K!(B
+- JVM デフォルトの suspend, resume 方法
   JVM_SuspendThread  (jvm.c)
   threadSuspend  (threads.c)
   #define sysThreadSuspend(a)
@@ -38,47 +38,47 @@
   hpi_thread_interface->ThreadSuspend = sysThreadSuspend  (share/hpi/src/hpi.c)
   sysThreadSuspend
     (solaris/hpi/{native,green}_threads/src/threads_md.c)
-  - native_threads $B$N>l9g(B
+  - native_threads の場合
     np_suspend();
-      np: Non-posix $B$NN,!#(B
+      np: Non-posix の略。
     thr_suspend  (threads_solaris.c)
-  - green_threads $B$N>l9g(B
+  - green_threads の場合
     queueRemove(&runnable_queue, tid);
-      runnable $B%-%e!<$+$i30$9!#(B
+      runnable キューから外す。
 
-- suspend $B;~!"9MN8$9$Y$-;v9`(B
-  - $B<+%9%l%C%I$+$=$&$G$J$$$+!#(B
-  - JIT compiled code $B$+%$%s%?%W%j%?$+!#(B
+- suspend 時、考慮すべき事項
+  - 自スレッドかそうでないか。
+  - JIT compiled code かインタプリタか。
 
-- suspend, resume $B$NJ}<0(B
-  - $B%9%l%C%I$4$H$KI,MW$J(B storage
-    - $B%U%i%0(B x 1
+- suspend, resume の方式
+  - スレッドごとに必要な storage
+    - フラグ x 1
       suspendReq
-    - $B%b%K%?(B x 1
+    - モニタ x 1
       suspendCond
-  - $B2]Bj(B
-    - Thread#interrupt $B$KBP1~(B
+  - 課題
+    - Thread#interrupt に対応
 
-boolean suspendReq;	// suspend $B$,MW5a$5$l$F$$$k!#(B
+boolean suspendReq;	// suspend が要求されている。
 #if 0
-boolean jitSuspend;	// JIT compiled code $B<B9TCf$K(B suspend $B$7$F$$$k!#(B
+boolean jitSuspend;	// JIT compiled code 実行中に suspend している。
 #endif
 Object suspendCond;
 
 MobaThread#suspend() {
-	// $BJ#?t$N%9%l%C%I$+$i8F$P$l$k$3$H$r9MN8!#MWGSB>=hM}!#(B
-  $BDL>o$N(B suspend();
-  if (JIT compiled method $B<B9TCf(B) {
-	// todo: $B$3$N8e!"(Bopc_suspend_check $B$,L5$+$C$?$i!D(B
+	// 複数のスレッドから呼ばれることを考慮。要排他処理。
+  通常の suspend();
+  if (JIT compiled method 実行中) {
+	// todo: この後、opc_suspend_check が無かったら…
     suspendReq = true;
     synchronized (suspendCond) {
-      $BDL>o$N(B resume();
+      通常の resume();
 
       boolean suspend_done = false;
       while (!suspend_done) {
         try {
           suspendCond.wait();
-		// $BK\Ev$K(B suspend $B$9$k$^$G(B caller $B$OBT$D!#(B
+		// 本当に suspend するまで caller は待つ。
           suspend_done = true;
         } catch (InterruptedException e) {}
       }
@@ -88,15 +88,15 @@ MobaThread#suspend() {
 
 opc_suspend_check:
   if (current_thread.suspendReq) {
-    $B%$%s%?%W%j%?$N<B9T>uBV$r:n@.(B;
+    インタプリタの実行状態を作成;
     current_thread.suspendReq = false;
-    synchronized (suspendCond) {	// suspender $B$,(B wait() $B$9$k$^$GBT$D!#(B
+    synchronized (suspendCond) {	// suspender が wait() するまで待つ。
       current_thread.suspendCond.notifyAll();
     }
 
     synchronized (resumeCond) {
 #if 1
-      $BDL>o$N(B suspend;
+      通常の suspend;
 #else
       jitSuspend = true;
 
@@ -109,18 +109,18 @@ opc_suspend_check:
       }
     }
 #endif
-    $B%$%s%?%W%j%?$N<B9T>uBV$r%/%j%"(B;
+    インタプリタの実行状態をクリア;
   }
 
 MobaThread#resume() {
 #if 1
-  $BDL>o$N(B resume;
+  通常の resume;
 #else
   if (jitSuspend) {
     synchronized (resumeCond) {
       resumeCond.notify();
-	// resumeCond.wait() $B$7$F$$$k$N$O(B resume $B$5$l$F$$$k%9%l%C%I$N$_$J$N$G(B
-	// notifyAll() $B$G$O$J$$!#(B
+	// resumeCond.wait() しているのは resume されているスレッドのみなので
+	// notifyAll() ではない。
     }
   }
 #endif

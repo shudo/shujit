@@ -1,64 +1,64 @@
-$B%j%K%"$J%a%b%j%l%$%"%&%H$NB?<!85G[Ns(B
+リニアなメモリレイアウトの多次元配列
 
-- $BL\E*(B
-  - JIT $B$K$h$k(B sematic expansion $B$G$I$3$^$G$G$-$k$+!#(B
+- 目的
+  - JIT による sematic expansion でどこまでできるか。
 
 - todo
-  - $B%a%b%j%l%$%"%&%H$r7h$a$k!#(B
-    $B<!85$4$H$NG[NsD9$N3JG<>l=j$J$I!#(B
+  - メモリレイアウトを決める。
+    次元ごとの配列長の格納場所など。
 
-- $BBP=h$,MW$k=hM}(B
-  - $BG[Ns$N:n@.(B
+- 対処が要る処理
+  - 配列の作成
     - multianewarray
-    - newarray, anewarray $B$NAH$_9g$o$;$K$h$k:n@.$OL5;k!)(B
-    - $B<!85$4$H$NG[NsD9$r$I$&J];}$9$k$+!)(B
-  - $BG[Ns%"%/%;%9(B
-    - aload i, (push index, aaload) x n$B2s(B,
+    - newarray, anewarray の組み合わせによる作成は無視？
+    - 次元ごとの配列長をどう保持するか？
+  - 配列アクセス
+    - aload i, (push index, aaload) x n回,
         read :  [ilfdabcs]aload
-        write:  $B2?$+$r(B push($BNc(B: bipush), [ilfdabcs]astore
-  - $BG[NsD9$N<hF@(B (arraylength)
-    1$B<!85L\$ND9$5$rJV$9$h$&$K$9$k!#(B
+        write:  何かを push(例: bipush), [ilfdabcs]astore
+  - 配列長の取得 (arraylength)
+    1次元目の長さを返すようにする。
   - GC
 
-- $B%G!<%?%U%m!<2r@O(B
-  - $B%m!<%+%kJQ?t$N7?$rCN$k$?$a$K$O!"%G!<%?%U%m!<2r@O$,MW$k!D(B
-  - $B$"$k;~E@$G%9%m%C%H(B n $BHV$K2?$,F~$C$F$$$k$+!#(B
-    LocalVariableTable $B$r@8@.$9$k$+!#(B
-  - $B$I$&$;$J$i%G!<%?0MB82r@O$^$G$7$?$$!D$-$j$,$J$$!#(B
+- データフロー解析
+  - ローカル変数の型を知るためには、データフロー解析が要る…
+  - ある時点でスロット n 番に何が入っているか。
+    LocalVariableTable を生成するか。
+  - どうせならデータ依存解析までしたい…きりがない。
 
-- $BLdBj(B
-  - sub-array $B$X$N%"%/%;%9(B
-    - $B$"$-$i$a$k!)(B
-    - $BI,MW$K1~$8$FG[Ns%*%V%8%'%/%H$r:n$k!#(B
-      $B$"$k%a%b%jNN0h$,J#?t%*%V%8%'%/%H$+$i;2>H$5$l$k!#(Balias$B!#(B
-        GC $B$,BP1~$9$kI,MW$"$j!#(B
+- 問題
+  - sub-array へのアクセス
+    - あきらめる？
+    - 必要に応じて配列オブジェクトを作る。
+      あるメモリ領域が複数オブジェクトから参照される。alias。
+        GC が対応する必要あり。
 
 
-[$B;qNA(B]
+[資料]
 
-- $B%*%V%8%'%/%H$r(B push $B$9$kL?Na(B
-  - $B%U%#!<%k%I$+$i(B
-    getfield $BEy(B: getfield, getfield_quick, getfield2_quick, getfield_quick_w
-  - $B%m!<%+%kJQ?t$+$i(B
-    aload $BEy(B: aload, aload_[0-3]
-    - LocalVariableTable attribute $B$,$J$$8B$j!"(B
-      $B%3%s%Q%$%k;~$K7?>pJs$rF@$i$l$J$$!#(B-> $B%G!<%?%U%m!<2r@O$,MW$k!#(B
+- オブジェクトを push する命令
+  - フィールドから
+    getfield 等: getfield, getfield_quick, getfield2_quick, getfield_quick_w
+  - ローカル変数から
+    aload 等: aload, aload_[0-3]
+    - LocalVariableTable attribute がない限り、
+      コンパイル時に型情報を得られない。-> データフロー解析が要る。
 (
-  - $B%3%s%9%?%s%H%W!<%k$+$i!"$OM-$jF@$J$$!#(B
-    ldc $BEy(B: ldc, ldc_w (ldc2_w $B$O(B long, double $B7?@lMQ(B)
-    $B%3%s%9%?%s%H%W!<%k$KF~$jF@$k%*%V%8%'%/%H$O(B String $B7?$N$_!#(B
+  - コンスタントプールから、は有り得ない。
+    ldc 等: ldc, ldc_w (ldc2_w は long, double 型専用)
+    コンスタントプールに入り得るオブジェクトは String 型のみ。
 )
 
 
-- Java $B%3%s%Q%$%i$,@8@.$9$k%P%$%H%3!<%INs(B
+- Java コンパイラが生成するバイトコード列
 
-  - $B@8@.(B:	new int[d0][d1]...[dn-1]
+  - 生成:	new int[d0][d1]...[dn-1]
 
     push (iconst_* or bipush or sipush or ldc) d0
     ... d1
     ...
     ... dn-1
-    multianewarray $B%/%i%9(B(2byte) $B<!85?t(B(1byte)
+    multianewarray クラス(2byte) 次元数(1byte)
 
   - write:	array[d0][d1]...[dn-1] = v
 
@@ -69,7 +69,7 @@
     push dn-2
     aaload
     push dn-1
-    ---------- $B0J>e$O(B write, read $B$G6&DL(B
+    ---------- 以上は write, read で共通
     push v
     ?astore
 
@@ -83,13 +83,13 @@
     push dn-2
     aaload
     push dn-1
-    ---------- $B0J>e$O(B write, read $B$G6&DL(B
+    ---------- 以上は write, read で共通
     ?aload
 
 
-- $B6qBNE*$J%P%$%H%3!<%I(B
+- 具体的なバイトコード
 
-  - $B@8@.(B
+  - 生成
     int[][][][][] ary0 = new int[32768][32767][127][5][-1];
 
    0 ldc #1 <Integer 32768>
@@ -151,8 +151,8 @@
   26 iaload
 
 
-- $BDj?t$N(B push
-  iconst_*:	-1 $B!A(B 5
+- 定数の push
+  iconst_*:	-1 〜 5
   bipush:	signed 8 bit
   sipush:	signed 16 bit
-  ldc:		$B@dBPCM$,$=$l0J>e(B
+  ldc:		絶対値がそれ以上
