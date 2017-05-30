@@ -1,0 +1,127 @@
+実行状態の非同期移送に対応した実行時コンパイラ
+ネイティブコードの実行を許す異機種間非同期実行状態移送方式
+
+- to be considered
+  - suspend() にて、compiled code 用の suspend 処理をするかしないかを
+    決める方法。
+    - 近いうちに opc_suspend_check が実行される見込みがあれば、
+      opc_suspend_check 向けの処理を行う。-> migration safe な suspend
+    - migration safe な suspend なるべく行いたい。
+  - suspend が migration safe だったかどうかを知る方法。
+  - 
+
+- 実行状態の変換: JVM <-> JIT
+  - 他のスレッドにやらせた方がよいか。
+  - externalize だけでなく、internalize も考える必要がある。
+    JVM -> JIT の変換。
+  - スタックのコピーのために、型情報が要る。64bit か 32bit か。
+    reference か即値か、を知る必要があるのは移送システム(MOBA) のみ。
+
+- suspend 方法。
+  - MobaThread#suspend(), resume() を用意する。
+  - Thread#suspend(), resume() をすげかえる。
+    private native void suspend0();
+    private native void resume0();
+
+- 実行状態の変換 (JVM <-> JIT) を行うタイミング。
+  - suspend された時点。
+    × 無駄に変換をしてしまう。しかし、たいしたオーバヘッドではない？
+  - JVMDI 経由のアクセスをフックする。
+    × JDK 1.2 でのみ動作。
+    × フックなんて可能か？
+
+- JVM デフォルトの suspend, resume 方法
+  JVM_SuspendThread  (jvm.c)
+  threadSuspend  (threads.c)
+  #define sysThreadSuspend(a)
+	hpi_thread_interface->ThreadSuspend(a)  (sys_api.h)
+  hpi_thread_interface->ThreadSuspend = sysThreadSuspend  (share/hpi/src/hpi.c)
+  sysThreadSuspend
+    (solaris/hpi/{native,green}_threads/src/threads_md.c)
+  - native_threads の場合
+    np_suspend();
+      np: Non-posix の略。
+    thr_suspend  (threads_solaris.c)
+  - green_threads の場合
+    queueRemove(&runnable_queue, tid);
+      runnable キューから外す。
+
+- suspend 時、考慮すべき事項
+  - 自スレッドかそうでないか。
+  - JIT compiled code かインタプリタか。
+
+- suspend, resume の方式
+  - スレッドごとに必要な storage
+    - フラグ x 1
+      suspendReq
+    - モニタ x 1
+      suspendCond
+  - 課題
+    - Thread#interrupt に対応
+
+boolean suspendReq;	// suspend が要求されている。
+#if 0
+boolean jitSuspend;	// JIT compiled code 実行中に suspend している。
+#endif
+Object suspendCond;
+
+MobaThread#suspend() {
+	// 複数のスレッドから呼ばれることを考慮。要排他処理。
+  通常の suspend();
+  if (JIT compiled method 実行中) {
+	// todo: この後、opc_suspend_check が無かったら…
+    suspendReq = true;
+    synchronized (suspendCond) {
+      通常の resume();
+
+      boolean suspend_done = false;
+      while (!suspend_done) {
+        try {
+          suspendCond.wait();
+		// 本当に suspend するまで caller は待つ。
+          suspend_done = true;
+        } catch (InterruptedException e) {}
+      }
+    }
+  }
+}
+
+opc_suspend_check:
+  if (current_thread.suspendReq) {
+    インタプリタの実行状態を作成;
+    current_thread.suspendReq = false;
+    synchronized (suspendCond) {	// suspender が wait() するまで待つ。
+      current_thread.suspendCond.notifyAll();
+    }
+
+    synchronized (resumeCond) {
+#if 1
+      通常の suspend;
+#else
+      jitSuspend = true;
+
+      boolean resume_done = false;
+      while (!resume_done) {
+        try {
+          resumeCond.wait();
+          resume_done = true;
+        } catch (InterruptedException e) {}
+      }
+    }
+#endif
+    インタプリタの実行状態をクリア;
+  }
+
+MobaThread#resume() {
+#if 1
+  通常の resume;
+#else
+  if (jitSuspend) {
+    synchronized (resumeCond) {
+      resumeCond.notify();
+	// resumeCond.wait() しているのは resume されているスレッドのみなので
+	// notifyAll() ではない。
+    }
+  }
+#endif
+}

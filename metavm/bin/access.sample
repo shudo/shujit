@@ -1,0 +1,9 @@
+# Access control file for MetaVM
+#
+# To invoke MetaVM with access control, type:
+# % metavm -a access_control_file
+
+deny
+allow 127.0.0.1/8
+allow 133.9.68.0/26
+#allow murau1:80 shudoh

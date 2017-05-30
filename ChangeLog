@@ -1,0 +1,3285 @@
+$Id$
+
+[20050808]
+
+0.8.0 リリース。
+
+[20050625]
+
+gcc 4.0 でコンパイルしてもきちんと動作するようにした。
+(code.c)
+
+[20050622]
+
+gcc 4.0 でコンパイルが通るようにした。
+(code.c, code.h, compile.c, runtime.c, signal.c, x86tsc.c, gentable.rb)
+
+[20041006]
+
+gcc 3.4.2 はブロックの末尾にラベル (◯◯:) を許さないので、
+ブロック末尾のラベルの後に空ブロック "{}" を加えた。
+(compile.c)
+
+INT 3 の asm 文がシグナルハンドラを指すポインタを参照していると宣言した。
+宣言しておかないと、INT 3 を挟んでいるシグナルハンドラへの
+2ヶ所の代入のうち最初のものを gcc 3.4.2 が eliminate してしまうため。
+(compiler.c)
+
+[20031029]
+
+exceptionHandler() にて signal_name (char * 型の配列) を %edi に入れる際に
+gcc 3.3.2 は %ecx を使ってしまうので、
+%eax, %esi に加えて %ecx, %edx も使わないように指示を加えた。
+(code.c)
+
+各バイトコード命令の pre-assembled code を区切るための
+未定義命令を 0xf1 から 0xd2 に変更した。
+binutils (の objdump -d) が、2.13.2 から 2.14 の間に、
+0xf1 (see [19990109]) を icebp とディスアセンブルするように変更されたため。
+(code.h)
+
+[20031001]
+
+Win32 か否かを判定するためのマクロを WIN32 から _WIN32 に変更した。
+(code.c, code.h, compile.c, compiler.h, invoker.c, linker.c, runtime.c,
+ stack.c)
+
+[20030922]
+
+Win32 の場合、ネイティブメソッド (JNI, NMI) からの返り値が
+8 bit, 16 bit 整数 (boolean, byte, short, char) だった場合に、
+32 bit 符号つき整数に変換するようにした。
+変換のために、マクロ CAST_*_TO_INT32() (compiler.h) を用意した。
+(runtime.c, compiler.h)
+
+Win32 の場合、JDK の is_instance_of(), is_subclass_of() の返り値を
+8 bit 非負整数と見なして、and 0xff するようにした。
+変換には、マクロ CAST_UINT8_TO_INT32() を使う。
+(code.c)
+
+関数名を export する .globl 疑似命令を出力する際、
+Win32 の場合は Win32 に応じた周辺の擬似命令を出力できるようにした。
+.globl を出力する DECL_GLOBAL_FUNC() マクロを用意した。
+(code.h, code.c, invoker.c)
+
+Win32 用に、GCC が存在を仮定する _alloca() を用意した。
+即、Visual C++ の _chkstk() にジャンプする。
+(invoker.c)
+
+[20030917]
+
+Win32 では、64 bit 整数の除算、剰余算のために、__divdi3, __moddi3 ではなく
+_alldiv, _allrem を使うようにした。
+(code.c, gentable.rb)
+
+[20030912]
+
+オプション fpextended と fpsingle を用意した。
+それぞれ、x87 FPU の丸め精度を extended と single に設定する。
+これに伴い、マクロ FORCE_DOUBLE_PRECISION (see [20000422]) を廃止した。
+上記オプションの設定がない場合は、無条件で double に設定するようにした。
+(compiler.h, compiler.c, compile.c, code.c)
+
+[20030428]
+
+環境変数が ja_JP.eucJP の場合に定数表作成スクリプト gentable.rb が
+うまく働かなかった。修整。
+(gentable.rb)
+
+[20030320]
+
+Win32 への対応作業を始めた。
+シンボルの生成方法など、基本的な作業を終えた。
+(compiler.h, code.c, code.h, compile.c, linker.c, runtime.c, stack.c,
+ gentable.rb, configure.in, GNUmakefile.in)
+
+[20030120]
+
+gcc 3.2 の dead code elimination が
+exceptionHandlerWrapper() (code.c) の handler_state = cf->state を
+除去してしまっていた。
+Blackdown JDK 1.1.8 で発覚。
+この処理をアセンブリコードで記述した。
+(code.c, code.h)
+
+0.7.14 リリース。
+
+[20030106]
+
+java.lang.Math#exp() の special inlining を有効にした。
+(see [19991004])
+asin, acos, exp は、x87 命令での演算結果と fdlibm による結果が異なるので、
+JDK 1.2 以降の場合にのみ、special inlining が有効になるようにした。
+(opcodes_internal.h, code.c, compile.c, gentable.rb)
+
+java.lang.Math#{asin,acos}() に対しても
+special inlining (see [19990822]) を適用するようにした。
+(opcodes_internal.h, code.c, compile.c, gentable.rb)
+
+java.lang.Math#abs() と java.lang.StrictMath#abs に対しても
+special inlining (see [19990822]) を適用するようにした。
+そのために、内部命令 abs_int, abs_long, abs_float, abs_double を追加。
+(opcodes_internal.h, code.c, compile.c, gentable.rb)
+
+[20021030]
+
+コンストラクタ呼び出しに対しては null check を省いていたが (see [20000821])、
+JDK 1.1.X 以前では省かないようにした。
+具体的には、内部命令 invokeignored_static_quick ではなく、
+invokeignored_quick を生成するように変更した。
+1.3.1 では、null に対するコンストラクタ呼び出しは
+bytecode verifier が検出して例外が throw される。
+しかし、1.1.8 では verifier にひっかからない。null check が必要。
+(compile.c)
+
+[20020816]
+
+コード書き換えでジャンプ命令を上書きする際に (see [20000821])、
+MOV 命令ではなく XCHG 命令を使うようにした。
+(code.c)
+
+[20020814]
+
+シグナルで例外 (NullPointerException と ArithmeticException) が
+検出された回数を数えて実行終了後に表示するマクロ
+COUNT_EXC_SIGNAL を用意した。
+(signal.c, compiler.h, compiler.c)
+
+[20020717]
+
+0.7.13 リリース。
+
+[20020716]
+
+ライセンスを、GNU GPL から GNU LGPL に変更した。
+GPL では、本当は JDK (のライブラリ) とリンクすることが許されないため。
+
+[20020701]
+
+FreeBSD 4.6-STABLE で uint16_t, int16_t の再定義が起きて
+コンパイルできないという問題に対処。
+(compiler.h)
+
+[20020521]
+
+JDK より厳しいきちんとしたアクセス制御 (see [19991209] and [19991003]) を
+緩めるマクロ SLACK_ACCESS_CONTROL を用意した。
+緩めないと Orion 1.5.4 が動作しないため。
+(compile.c, compiler.h)
+
+[20020420]
+
+strictfp のための scaling は単精度演算では本来は不要なので、省いた。
+ただし、マクロ OMIT_SCALING_SINGLE_PRECISION で制御できるようにして残した。
+(compile.c, compiler.h)
+
+0.7.12 リリース。
+
+[20020319]
+
+FreeBSD JDK 1.3.1-p6 用の workaround ([20020312]) を、
+compileAndInvokeMethod() (invoker.c) がインタプリタ ExecuteJava() を呼ぶ
+直前にも記述した。
+こうしないと、setenv JAVA_COMPILER_OPT systhreshold=1 としただけで
+jEdit 3.2.2 が異常終了してしまう。
+(invoker.c)
+
+[20020313]
+
+FreeBSD JDK 1.3.1-p6 のシグナルまわりの問題に対する workaround ([20020312])
+が、configure で自動的に有効になるようにした。
+(configure.in, config.h.in)
+
+JIT 生成コードを包含するメモリ上の範囲を
+compiledcode_min, compiledcode_max として保持するようにした。
+シグナルハンドラにて、プログラムカウンタがこの範囲に収まっていない場合、
+JIT 側で扱うべきではないので、ただちに return FALSE するようにした。
+ただし、SIGFPE の場合は JIT 生成コードの外 (__divdi3(), __moddi3()) で
+発生したものも扱う必要があるので、return FALSE しない。
+(compile.c, compiler.h, signal.c)
+
+0.7.11 リリース。
+
+[20020312]
+
+FreeBSD JDK 1.3.1 patchlevel 6 が、どこかで SIGTRAP を
+sigprocmask(SIG_BLOCK, ...) してしまっている模様。
+この問題を回避するためのマクロ WORKAROUND_FOR_FREEBSD_131P6 を
+compiler.h に用意。
+jEdit 3.2.2 が起動時に固まるという現象となって表れていた。
+再現するには、compiler.h にて METHOD_INLINING を #undef して、
+この回避策を無効化する。
+(runtime.c, compiler.h)
+
+[20020302]
+
+invocationHelper() (runtime.c) にて DIRECT_INV_NATIVE のコードで
+ネイティブメソッドを呼び出した際、ネイティブメソッド中で例外が発生していても
+EE()->current_frame->optop を増やしてしまっていた。
+例外が発生していない場合にのみ増やすように修整。
+(runtime.c)
+
+[20020301]
+
+invoker がどれかを判定する際に、invokeJNINativeMethod() の代替である
+invoke_OII_I() などの custom invoker も、きちんと
+invokeJNINativeMethod() であると判定するようにした。
+JIT 初期化時に、これら custom invoker のアドレスの最大値と最小値を取得し、
+判定時は invoker 関数のアドレスをこれらと比較するようにした。
+(compiler.c, compiler.h, runtime.c)
+
+[20020217]
+
+searchCatchFrame() (runtime.c) にて、
+Java スタックをクリアしてしまっていたのを止めた。
+つまり、ee->current_frame->optop = ee->current_frame->ostack を削除。
+この関数は、例外発生時だけでなく、末尾再帰かどうかの判定の際
+(makePCTable() (compile.c)) にも呼ばれる。
+その場合にはクリアしてしまうとまずい。
+Xindice 1.0rc1 (旧名 dbXML) で発覚。
+org.openorb.CORBA.Any#write_value のコンパイル中、
+inlining 対象である org.openorb.io.StreamHelper#copy_stream の
+内部命令列を作る際、ある invokestatic が末尾再帰かどうか判定するために
+searchCatchFrame() が呼ばれていた。
+(runtime.c)
+
+[20020118]
+
+configure.in を整形。
+libgdbm, libndbm を探すために、パスを指定したいがために AC_CHECK_PROG を
+使っていたが、本来のライブラリ探しルーチン AC_CHECK_LIB を使うようにした。
+(configure.in)
+
+[20020116]
+
+シンボルのアドレスを探す際、FreeBSD, NetBSD だけでなく、
+Linux でも libjvm.so 中を明示的に探すようにした。
+Java Plugin で必要になった。
+(linker.c)
+
+[20011225]
+
+0.7.10 リリース。
+
+[20011207]
+
+最近の gcc でコンパイルできるようにした。
+「gcc version 3.1 20011127 (Red Hat Linux Rawhide 3.1-0.10)」
+invocationHelper() (runtime.c) の末尾にて %edx が破壊されるように
+なってしまっていたため、この破壊を避けるために
+invocationHelper() の宣言を返り値を返さないもの (void) に変更。
+(runtime.c, compiler.h)
+
+[20011201]
+
+#define PATCH_ON_JUMP の際に、
+呼び出されたメソッドがインライン展開されていた場合、
+そのメソッドを定義しているクラスが初期化されないという問題が起きていた。
+クラスを初期化する内部命令 init_class を設けて、
+インライン展開するメソッドが static メソッドである場合には
+内部命令 inlined_enter の直後に init_class を挿入するようにした。
+#define PATCH_WITH_SIGTRAP の場合は、きちんと初期化するようになっていた。
+(code.c, compile.c)
+
+[20011130]
+
+0.7.9 リリース。
+
+[20011129]
+
+0.7.6 以降の版で、TYA 付属のベンチマーク Sieve のスコアが非常に低くなっていた。
+[Thanks Maxim Sobolev <sobomax＠FreeBSD.org>]
+[20011017] の変更で、invokeJITCompiledMethod() (invoker.c) にて
+#define DIRECT_INVOCATION の場合も restack をスキップするようにしたところ、
+このスキップのために遅くなっていた。
+この修整は誤修整で、invocationHelper() (runtime.c) にてネイティブスタックから
+JVM スタックへの restack が行われているため、本来は、その逆の restack を
+スキップする必要はなかった。
+[20011017] の問題の本当の原因は、次の通り。
+インライン展開時に caller 側の methodblock->maxstack が callee 側よりも
+小さい場合に、ee->current_frame->current_method は caller 側となるため、
+小さい maxstack が採用されてしまい、JVM スタック上の値が破壊されていた。
+これを防ぐために、インライン展開時に caller 側 maxstack を補整するようにした。
+しかし、maxstack の書き換えがインタプリタ側で何か問題を起こすかもしれない。
+(invoker.c, runtime.c)
+
+[20011122]
+
+0.7.8 リリース。
+
+[20011121]
+
+java.io.BufferedInputStream#ensureOpen() の special inlining を実装した。
+(code.c, compiler.h, compile.c)
+
+[20011120]
+
+バイトコード命令 invokeinterface を高速化するため、inline caching を実装した。
+レシーバのクラスをガードとして、呼び出すメソッド (struct methodblock *) を
+compiled code 中にキャッシュする。
+マクロ INVINTF_INLINE_CACHE で、行うかどうかを制御できる。
+(code.c, runtime.c, compiler.h, compile.c)
+
+libshujit.so を strip するようにした。
+(GNUmakefile.in, configure.in)
+
+[20011119]
+
+getInterfaceMethod() (runtime.c) の引数から bytepcoff を削除した。
+必要になった時点で、guessptr - 4 として容易に算出できるため。
+(runtime.c, code.c, compiler.h)
+
+[20011118]
+
+config.guess と config.sub を autoconf 2.52 のものに換えた。
+(config.guess, config.sub)
+
+[20011116]
+
+gcc を探す際に、`gcc3' コマンドを最初に探すように追加した。
+(configure.in)
+
+InstantiationError がきちんと起きるようにした。
+once_in_new() (runtime.c) で行っていた、バイトコード命令 new の実行時に
+一度だけ行う必要があるチェックのうち、
+InstantiationError, IllegalAccessError を引き起こし得るチェックを
+コンパイル時 (processAnOpcode() (compile.c)) に移した。
+これに伴い、once_in_new() を廃止して once_InitClass() で置き換え、
+内部命令 throw_instantiation を追加した。
+(compile.c, runtime.c, code.c, compiler.h, opcode_internal.h, gentable.rb)
+
+[20011115]
+
+フィールドやメソッドが見つからなかった場合にコンパイルをあきらめるのではなく、
+きちんと NoSuchFieldError と NoSuchMethodError を throw するようにした。
+NoClassDefFoundError と同じ手法を使った。see [19990922]。
+つまり、例外を throw するネイティブコードにコンパイルする。
+Jike RVM 2.0.1 のリリースノートを読んでいて、問題に気付いた:
+| The following bugs in version 2.0.0 are fixed in 2.0.1:
+|   - 2227: rvm hangs instead of throwing NoSuchFieldError
+(code.c, compile.c, compiler.c, compiler.h, opcode_internal.h)
+
+[20011102]
+
+0.7.7 リリース。
+
+[20011030]
+
+configure にて gcc 2.95.X と 2.96 を区別するようにし、
+マクロ GCC_VER をそれぞれ 295 と 296 に設定するようにした。
+この区別を活用するのは、現在、compile.c だけである。
+(configure.in)
+
+[20011022]
+
+予期しないシグナルを受け取った際のエラーメッセージに
+gcc のバージョン番号を含めるようにした。
+(configure.in, config.h.in, signal.c)
+
+[20011020]
+
+gcc 3.0.1 でコンパイルできるようにした。
+「gcc version 3.0.2 20010905 (Red Hat Linux 7.1 3.0.1-3)」
+これまで、局所変数のベースポインタからのオフセットが
+変数の宣言順によって決まると仮定して、assembledCode() と
+exceptionHandlerWrapper() で同一メモリ領域 (bytepcoff) にアクセスしていた。
+gcc 3.0.1 ではこれを仮定できないため、明示的にオフセットを指定するように修整。
+(code.c, code.h, compile.c, runtime.c, configure.in, GNUmakefile.in,
+ config.h.in)
+
+[20011017]
+
+#define DIRECT_INVOCATION の場合、
+invocationHelper() -> compileAndInvokeMethod() -> invokeJITCompiledMethod()
+という呼び出しを辿ると、本来してはいけないにも関わらず、
+JVM のスタックからネイティブスタックへの restack をしてしまっていた。
+これが起きないように修整した。
+Jython 2.0 で発覚。
+これまで、JIT 生成コードから呼び出された印として
+ee->current_frame->returnpc を -1 に設定する処理は、
+#undef DIRECT_INVOCATION の場合にのみ JIT 生成コード中で行っていた。
+それを、invocationHelper() (runtime.c) で行うようにした。
+そして、invokeJITCompiledMethod() 中で restack をスキップするか否かの
+判定を returnpc を見て常に行うようにした。
+[Thanks 宮城涼さん <miyagi＠cell.semicon.sony.co.jp>]
+(runtime.c, invoker.c, code.c)
+
+0.7.6 リリース。
+
+[20010922]
+
+無限ループの実行中に Thread#stop() された場合でも
+きちんと ThreadDeath (非同期例外) が throw されたことを検出するようにした。
+例外が throw されているかどうか調べる内部命令 exc_check を追加した。
+ある条件を満たした後方ジャンプの前に exc_check 命令を挿入するようにした。
+この条件チェックはさぼったいい加減なものなので、完全な動作は保証しない。
+compiler.h 中のマクロ EXC_CHECK_IN_LOOP で、
+このチェックを行うかどうかを制御できる。
+Kaffe 1.0.6 の test/regression/ThreadStop がきちんと動作終了することを確認。
+(opcodes_internal.h, code.c, compile.c)
+
+[20010921]
+
+クラスを JIT 向けに初期化する際 (initializeClassForJIT()) に、
+クラスが final だった場合にはメソッドのフラグ (access) も final に変更
+していたが、これによって java.io.ObjectStreamClass#computeSerialVersionUID()
+で算出される serialVersionUID が変わってしまっていた。
+メソッドのフラグは変更しないでおいて、final かどうかのチェック時に
+クラスのフラグも見るようにした。
+Forte for Java 3.0 で発覚。
+(compiler.c, compile.c)
+
+0.7.5 リリース。
+
+[20010920]
+
+マクロ NULL_TEST() の定義中で、マクロ SIGNAL_ERROR0() の引数として、
+本来 EXCID_NullPointerException を与えねばならないところ、
+単に NullPointerException と書いてしまっていた。修整。
+(code.h)
+
+[20010917]
+
+computil.c にあるいくつかの関数
+(getCompilerContext(), releaseCompilerContext(), prepareCompiledCodeInfo())
+にて、排他制御のためにクラスオブジェクトを使うのを止めた。
+sysMonitorEnter(), sysMonitorExit() を使うようにした。
+Forte for Java 3.0 でデッドロックが起きてしまっていたため。
+(computil.c)
+
+[20010917]
+
+synchronized メソッドは inline しないようにした。
+inline したメソッド内で例外が throw された場合に
+モニタを開放しない恐れがあるため。
+(compile.c)
+
+synchronized メソッドの再帰呼び出しは末尾再帰として扱わないようにした。
+呼び出しからの return 後にモニタの開放を行う必要があるため、末尾再帰ではない。
+Forte for Java 3.0 の
+org.netbeans.core.MultiURLClassLoader#getResource(String, boolean) で
+IllegalMonitorStateException が起きていて発覚。
+プログラムカウンタ 170 の invokespecial が invoke_recursive_3 に変換されて
+しまっていたため。
+(compile.c)
+
+[20010905]
+
+0.7.4 リリース。
+
+[20010903]
+
+GNUMakefile.in を改造。
+% make debug とすると、-g -DDEBUG -DJCOV オプション付きでコンパイルを行って
+libshujit_g.so が作られるようにした。
+(GNUMakefile.in)
+
+[20010901]
+
+マクロ DEBUG が #define されている場合は、
+マクロ EXECUTEJAVA_IN_ASM を#define しないようにした。
+つまり、アセンブリコード版ではなく C 版のインタプリタに対応した
+コンパイルを行うようにした。
+(config.h)
+
+symbolInSystemClassLoader() で 共有ライブラリを
+ロードする際、マクロ DEBUG が #define されている場合は、
+ロードするライブラリ名に "_g" を付けるようにした。
+(linker.c)
+
+[20010808]
+
+JIT 用の例外表 (throwentry 型) を、writeCode() (compile.c) の末尾で
+realloc(3) して、実際のサイズまで shrink するようにした。
+消費メモリ量削減のため。
+(compile.c)
+
+[20010807]
+
+JIT 用の例外表 (throwentry 型) のサイズを減らした。
+最初から 8 要素分の領域を確保していたところ、これを 0 として、
+8, 16, 32 と拡張していっていたところ、0, 1, 2, 4, 8 と拡張するようにした。
+(computil.c, compiler.h)
+
+[20010802]
+
+SSE2 命令対応によってバイトコード命令 frem, drem がきちんと
+動作しなくなっていたのを修整。
+l2f, l2d 命令と同様に、内部命令 fst, dst の処理を frem, drem に含めた。
+(see [20010626])
+(code.c, compile.c)
+
+[20010731]
+
+ひとつのメソッドに対して複数の CompilerContext (compiler.h) が得られてしまう
+という問題を解消した。あるスレッドがコンパイル中に別スレッドがコンパイルを
+始めた場合に、別の CompilerContext が得られて問題が起きていた。
+ひとつのメソッドに対しては単一の CompilerContext が得られるようにして、
+参照カウントで GC するようにして解決。
+(computil.c)
+
+[20010729]
+
+Blackdown JDK 1.3.1 でコンパイルできるように、
+gcc に渡す -I オプションを追加した。
+(configure.in, GNUmakefile.in)
+
+[20010725]
+
+コード自己書き換えの方法を INT $3 を使う方法に変更し終えた。
+生成コード中に NOP を用意しておいて JMP で上書きする方法から、
+INT $3 を生成しておいてシグナルハンドラで必要な処理を行い、
+INT $3 (0xcc) の上にパッチを当てる方法に変更した。
+この方法は生成コードの保存 (オプション codedb) と両立しない！ことに注意。
+シグナルハンドラの中から直接 once_*() を呼んでしまうと
+その先の生成コードでまたシグナルが発生してデッドロックしてしまうので、
+トランポリンコードを用意 (CodeInfo.trampoline) して、シグナルハンドラからは
+そこに戻るようにした。この問題は demo/jfc/Java2D/Java2Demo.jar で発覚。
+(compiler.h, code.c, signal.c, compile.c, computil.c, runtime.c, codedb.c)
+
+[20010715]
+
+内部命令 getstatic2, putstatic2, getstatic2_quick, putstatic2_quick の処理を
+変更。これまでは putstatic2 の場合
+  movl  %reg0,(定数)
+  movl  %reg1,(定数)
+としていたところ
+  movl  $定数,%edi
+  movl  %reg0,(%edi)
+  movl  %reg1,4(%edi)
+と変更した。コード量は 12 バイトから 10 バイトに。
+(code.c, compile.c)
+
+throwentry 型 (compiler.h) に、uint8_t patched_code というメンバを設けた。
+コードにパッチ (int $3, 0xcc) を当てた際に元のコードを保存する場所。
+これに伴い、メンバ len を uint16_t から uint8_t に変更した。
+getable.rb は、len が 255 を超えた場合には異常終了するようにした。
+(compiler.h, computil.c, codedb.c)
+
+[20010712]
+
+0.7.3 リリース。
+
+[20010704]
+
+オプション sched_fifo と sched_rr を用意した。
+POSIX.1b で規定されている set_scheduler(2) などのインタフェースを利用して、
+スケジューリングポリシーをそれぞれ SCHED_FIFO、SCHED_RR に設定する。
+この機能を使うには、通常、root 権限が要る。
+(compiler.c, compiler.h)
+
+[20010702]
+
+strictfp のために fscale 命令ではなく乗算 (fmul 命令) を使うようにした。
+(compiler.h)
+
+0.7.2 リリース。
+
+[20010629]
+
+マクロ CAUSE_STACKOVERFLOW と NULLEXC_BY_SIGNAL が define されている場合、
+これまで、NullPointerException が StackOverflowError だと解釈されてしまう
+可能性がわずかにあった。この判定を厳密に行うようにした。
+あらゆる FP 演算を強制的に strictfp にした状態で
+SPEC JVM98 の _209_db をデータサイズ 10 以上で実行して発覚。
+(signal.c)
+
+[20010626]
+
+SSE2 に対応させた。
+configure --enable-sse2 とした場合、浮動小数点数の四則演算他に
+x87 命令ではなく SSE2 命令を使うようにした。
+SSE2 で行うようにした処理は次の通り:
+  - 四則演算
+    関係する内部命令を SSE2 命令に対応させた:
+      fadd, fsub, fmul, fdiv, dadd, dsub, dmul, ddiv および、
+      fld, fld4, fload_fld, faload_fld, dld, dld8, dload_dld, daload_dld,
+      fst, fst_fstore, fst_fastore, dst, dst_dstore, dst_dastore
+    また、SSE2 を使う場合は strictfp のための処理をコンパイルしないようにした。
+    strictfp の指定が一致した場合のみ inlining できる、という制約を外した。
+    fld, fst, dld, dst 系内部命令の SSE2 移行に伴い、f2d, d2f の処理も変更。
+  - 平方根 (Math#sqrt())
+  - 32bit 整数から FP への変換 (バイトコード命令 i2f, i2d)
+SSE2 への移行は保留した処理は次の通り:
+  - 64bit 整数からの変換 (バイトコード命令 l2f, l2d)
+    SSE2 だけでは厄介なので、x87 命令で処理。
+  - FP から整数への変換 (バイトコード命令 f2i, f2l, d2i, d2l)
+    面倒なので保留。
+  - FP の比較 (バイトコード命令 fcmpl, fcmpg, dcmpl, dcmpg)
+    面倒なので保留。
+
+バイトコード命令 fneg, dneg で浮動小数点数の符号を反転するために、
+x87 命令 fchs を使うのは止めた。
+xor 命令で直接最上位ビットを反転させるようにした。
+(code.c, compile.c)
+
+[20010625]
+
+configure に --enable-sse2 オプションを追加した。
+(configure.in, config.h.in)
+
+[20010319]
+
+0.7.1 リリース。
+
+[20010318]
+
+throwtableAdd() に引数として与える、バイトコード上の PC を、
+各メソッドの元の値ではなく、
+インライン展開先の最も外側のメソッド上の PC に修整。
+(compile.c)
+
+[20010311]
+
+lazy compilation のしきい値 (オプション cmplthreshold) を、
+JDK が用意しているメソッドとそれ以外について別々に指定できるようにした。
+それぞれオプション systhreshold と userthreshold。
+デフォルト値はそれぞれ、10 と 1 にした。
+この回数だけ呼び出された時点で初めてコンパイルされる。
+(compiler.h, compiler.c, invoker.c)
+
+0.7.0 リリース。
+
+[20010228]
+
+マクロ名の中の REWRITE をすべて PATCH に書き換えた。
+(compile.c, runtime.c, compiler.c, compiler.h)
+
+[20010224]
+
+initializeClassForJIT() (compiler.c) にて、invoker を初期化する際に
+コンパイル済みかどうかを判定するために、これまでは methodblock->invoker が
+invokeJITCompiledMethod() を指しているかどうかを見ていた。
+それを、methodblock->CompiledCode が NULL か否かを見るようにした。
+initializeClassForJIT() が呼ばれる前に eagerCompilation() (optimize.c) で
+静的コンパイル可能部分 (stage_static_part: まで) のみコンパイルされた
+メソッドの methodblock->CompiledCode が NULL に初期化されてしまっていたため。
+自己書き換えを disable するために #define NO_REWRITE として、
+cmplthreshold=1 でテストしていて気付いた。
+(compiler.c)
+
+[20010123]
+
+(MetaVM) Proxy クラスに、それが指すオブジェクトのクラスのロード元を記憶する
+メンバ clzsrc (VMAddress 型) を用意。
+Proxy クラスがマシン間で転送された場合、それが指すオブジェクトのクラスは
+clzsrc が指すマシンからロードするようにした。
+Proxy#readObject() で実現。
+(Proxy.java)
+
+(MetaVM) Proxy#invoke(), proxy_invoke() (in proxy.c) などで、
+例外発生時には remote flag の restore を忘れていた。修整。
+(Proxy.java, proxy.c)
+
+(MetaVM) レジストリを実装。NET.shudo.metavm.registry パッケージ。
+オブジェクトに名前を付けて表に保存できる。表は遠隔参照も保持できる。
+API は java.rmi.registry.Registry を参考にした。
+
+[20010122]
+
+(MetaVM) ネットワークまわりのアクセス制御を、MOBA から移植した。
+ホスト名, IP アドレス, ポート番号, ユーザ名に基づいて、
+ネットワーク経由のアクセスを制限できる。
+(AccessController.java, AccCtrldServSocket.java, SocketAuthenticator.java)
+
+(MetaVM) クラス ClassDistributionDaemon, ClassDistributor を MetaVMServer の
+inner クラスに、ExpirationDaemon を anonymous クラスにした。
+(MetaVMServer.java)
+
+(MetaVM) 例外発生時に remote flag をクリアしてしまっていたのを修整。
+JDK のクラスライブラリ中で例外が発生して、いつの間にか
+クリアされてしまっていた。
+(code.c)
+
+(MetaVM) 遠隔参照 (Proxy) の型判定方法を修整。
+instanceof, checkcast バイトコード命令では、
+JDK の is_subclass_of() を呼び出すようにした。
+(code.c)
+
+[20010116]
+
+(MetaVM) fst, ..., fastore を内部命令 fst_fastore に変換する
+peephole 最適化を、MetaVM 有効時には行わないようにした。
+当該内部命令が MetaVM 対応になっていないため。
+dst_dastore 内部命令については以前より抑制するようになっていた。
+SPEC JVM98 の _222_mpegaudio で問題が発覚。
+(optimize.c)
+
+[20010112]
+
+(MetaVM) ネイティブメソッド System#arraycopy() の、遠隔参照対応版を作った。
+System#arraycopy() が呼ばれた際に、JDK が元々用意している
+JVM_ArrayCopy() ではなく、今回用意した MetaVM_ArrayCopy() (nativemtd.c) が
+呼ばれるようにした。
+初期化のためのネイティブメソッド、MetaVM#initializationForMetaVM() も用意した。
+(nativemtd.c, MetaVM.java)
+
+[20010110]
+
+NetBSD では、インタプリタが assembly code 版ではなくて C 言語版であると
+仮定した (configure に --enable-c-interpreter が指定された状況にした)。
+(configure.in)
+
+[20010108]
+
+(MetaVM) これまで、配列 (Object[], int[]) を遠隔参照にせずにコピーして渡す
+ために、ArrayOfObjectWrapper, ArrayOfIntWrapper クラスを用意していたが、
+汎用の ByValueWrapper クラスに一本化した。
+これに伴い、DistObjectOutputStream クラスに、次に書き込まれたオブジェクトは
+コピーを渡す、という指定をするための copyNextObject() メソッドを用意した。
+(ByValueWrapper.java, DistObjectOutputStream.java)
+
+(MetaVM) Proxy クラスに hashCode(), equals() メソッドを追加した。
+同じオブジェクトを遠隔参照する Proxy オブジェクトは同値になるようにした。
+(Proxy.java)
+
+(MetaVM) Proxy#getCopy() に応える Skeleton 側処理は、
+オブジェクトを DistOutputStream#writeDistObject(obj) する前に
+ObjectOutputStream#reset() を呼んでリセットしておかねばならない。
+新鮮な内容が転送されないことがあるため。
+これに伴い、Proxy クラスの同値のインスタンスが複数存在しかねなくなったので、
+極力、同値なら同一インスタンスとなるように、インスタンス生成方法を変えた。
+(Proxy.java, Skeleton.java)
+
+Proxy#getArrayCopy() と、Skeleton 側にリクエスト GETARYCOPY を受ける処理を
+追加。
+(Proxy.java, Skeleton.java)
+
+[20010106]
+
+strictfp が指定されたメソッドは、lazy compilation 時も
+初めての呼び出し時にコンパイルしてしまうようにした。
+現在のインタプリタは strictfp 対応していないので、
+strictfp のセマンティクスに従うためには JIT コンパイルしてしまう必要がある。
+(invoker.c)
+
+0.6.10 リリース。
+
+[20010105]
+
+writeCode() (compile.c) にて、内部命令 inlined_{enter,exit} に遭遇した場合、
+struct methodblock *mb だけでなく CodeInfo *info も更新してしまっていた。
+java.text.StringCharacterIterator クラスで問題が起きていた。
+info は更新しないように修整。
+(compile.c)
+
+java.lang.Math#{sin,cos,tan}() に対応するネイティブコード
+(pre-assembled code) を変更した。
+これまでは単に、それぞれ fsin 命令, fcos 命令, fptan + ffreep %st(0) 命令を
+呼んでいた。しかし、これらの命令はオペランドが 0 から π * 2^62 の範囲内で
+なければならず、これまでこの範囲チェックをしていなかった。
+libm の関数 sin(), cos(), tan() を呼ぶように変更した。
+本来は、JDK 1.2 以降では fdlibm 中の jsin, jcos, jtan を呼ぶべきだが、
+これらのシンボルは libshujit.so ロード時には解決できないため、
+暫定処置として sin, cos, tan を呼ぶようにした。
+(code.c)
+
+[20001213]
+
+0.6.9 リリース。
+
+[20001212]
+
+lazy compilation 時に、インタプリタが作った JavaFrame を作った後で
+そのフレームに対応するメソッドが JIT コンパイルされた場合、
+以前のフレームも JITted native code が生成したと見倣されてしまっていた。
+framePrev() (in compiler.c) が呼ばれた際も、
+インタプリタが作ったフレームである可能性を考慮してチェックするようにした。
+(compiler.c)
+
+[20001210]
+
+配列の確保時に、これまでは JDK のバージョンに関わらず
+ArrayAlloc() を呼んでいたところ、
+JDK 1.2 以降では直接 allocArray() を呼ぶようにした。
+(code.c, code.h)
+
+パッケージ java.lang.ref のクラス群については、全メソッドを、
+JIT の初期化時 (java_lang_Compiler_start()) にコンパイルしてしまうようにした。
+SciMark 2.0 で、場合によって次の問題が起きていた:
+newarray 命令で起きた GC の最中に
+java.lang.ref.Reference#access$0() の JIT コンパイルが起き、
+その中でクラスのロードが起きてヒープ領域を要求。
+それによって再帰的に GC が起き、
+一旦は配列のために確保された領域が解放されてしまっていた。
+(compiler.c)
+
+[20001209]
+
+JDK 1.3 で configure が通るようにした。
+(configure.in)
+
+StackOverflowError をきちんと起こすためのパラメタを、
+OS, JDK のバージョンごとに調整した。
+compiler.h 中のマクロ STACKOVERFLOW_MARGIN。
+(compiler.h)
+
+[20001208]
+
+method inlining のパラメタふたつ、最大内部命令長と、深さを指定するオプション
+inlinemaxlen, inlinedepth を追加。
+(compiler.h, compiler.c, compile.c, optimize.c)
+
+[20001205]
+
+内部命令 invoke_recursive{,_1,_2,_3} に OPC_JUMP フラグを立てた。
+これらの内部命令を含むメソッドを inlining してしまわないように。
+(code.c)
+
+[20001204]
+
+これまで、例外表があるか throw し得るメソッドに
+内部命令 exc_handler を生成してしまっていたが、
+例外表があるメソッドのみついて生成するようにした。
+(compile.c)
+
+不要なメソッド末尾へのジャンプの元となる内部命令 return を省くようにした。
+これまでも実装してあったものの、内部命令 end の導入などによって
+そのコードは働かなくなっていた。
+processAnOpcode() 中で、内部命令 epilogue を見つけた際に処理している。
+(compile.c)
+
+[20001130]
+
+構造体 CodeInfo に、内部命令列を保存するフィールドを用意した。
+compileMethod() で inlining 前に、内部命令列を
+このフィールドにコピーして保存しておき、後にそれを inline する。
+(compile.c, optimize.c)
+
+getCompilerContext() (computil.c) にて、CompilerContext.ee に
+その時点の ExecEnv (EE()) を設定するようにした。
+method inlining の導入で、
+CompilerContext を複数のスレッドが利用するようになったため。
+SPEC JVM98 が SIGSEGV で異常終了する問題が解決。
+(computil.c)
+
+[20001128]
+
+updateState() にて、basic block 先頭のスタック状態を 0 にするようにした。
+(compile.c)
+
+method inlining を実装。
+
+[20001114]
+
+code.c 中の STR(CONST) と書かれた定数を
+code.o のディスアセンブル結果から探す際の正規表現を、
+「(0x606060|60 60 60 00)」から「(0x606060|e9 60 60 60 00)」に変更した。
+以前、e9 (jmp) 60 60 60 00 とマッチさせるために「60 60 60 00」を追加したが、
+これによって余分な行がマッチしてしまっていた。
+(gentable.rb)
+
+FreeBSD (>= 4) の JDK 1.1.X では、シグナルハンドラに渡される第 3引数の型を
+struct sigcontext * ではなく struct osigcontext * とした。
+JDK 1.2.X では sigcontext のまま。
+(compiler.h)
+
+0.6.8 リリース。
+
+[20001007]
+
+(MetaVM) 遠隔呼び出しのプロトコルを変更。
+slot, if (slot == 0) signature から、
+slot, if (slot == 0) methodblock配列中の index に変更。
+(Proxy.java, Skeleton.java)
+
+ネイティブメソッドを遠隔呼び出しする際に、ネイティブメソッドに
+遠隔参照 (Proxy のインスタンス) が渡る場合は警告を表示するようにした。
+(Proxy.java, Skeleton.java)
+
+[20001005]
+
+(MetaVM) Class.forName(name) を
+ClassLoader.getSystemClassLoader().loadClass(name) (相当) で置き換えた。
+JDK 1.2 以降では、システムクラスで Class.forName() を使って
+アプリケーションのクラスをロードできなくなったため。
+メソッド ClassLoader#getSystemClassLoader() は JDK 1.1 以前には存在しないため、
+MetaVM は現在 JDK 1.1 では動作しなくなっている。
+(DistObjectInputStream.java, MetaVM.java, Skeleton.java)
+
+[20001004]
+
+(MetaVM) VMOperations#{instantiate,anewarray,multianewarray} にて、
+クラスが初期化されていない場合に初期化を行うようにした。
+(vmop.c)
+
+[20001003]
+
+(MetaVM) 関数 proxy_* (proxy.c) をすべて JNI から old style に変更した。
+(proxy.c)
+
+[20001002]
+
+(MetaVM) JNI で実装してあった isByValue (byvalue.c) を
+old style で実装し直した。
+この関数を JNI で実装すると MkRefLocal() が必要で、
+MkRefLocal() は JDK 1.2 以降ではネイティブメソッド用 JavaFrame を要求する。
+この関数はネイティブメソッドとして Java のコードから呼ばれるとは限らないため
+JavaFrame (ee->current_frame) がネイティブメソッド用でない場合がある。
+結論: ネイティブメソッドではない関数は JNI の流儀で書かないこと。
+(byvalue.c)
+
+[20001001]
+
+#undef DIRECT_INVOCATION できちんと動作しなくなっていたのを修整。
+(runtime.c)
+
+(MetaVM) MetaVM を JDK 1.2 以降で動作させる場合は、
+クラスの初期化時にネイティブメソッドをリンクしてしまうようにした。
+そうしないと、MetaVM#instantiationVM() が instantiationVM0() を呼んだ際に
+instantiationVM0() に制御が移る前にリンクのための Java コードが実行されて
+しまうため。
+これに伴い、initializeClassForJIT() (compiler.c) の引数に
+bool_t linkNative を追加。
+(compiler.c, compiler.h)
+
+[20000930]
+
+`instanceof java.lang.Object' に対するコード生成を省くようにした。
+(compile.c)
+
+[20000929]
+
+(MetaVM) remote flag と remote address を初期化するための
+内部命令 metavm_init を用意し、Thread#run() の先頭に生成するようにした。
+(compiler.h, code.c, compile.c)
+
+[20000920]
+
+NetBSD/i386 1.5ALPHA (ELF), egcs-1.1.2, JDK 1.1.8 RC1 で
+動作したという報告があったので、#if defined(__FreeBSD__) を
+defined(__FreeBSD__) || defined(__NetBSD__) に変更した。
+[Thanks 柳井裕之さん <fk200329＠fsinet.or.jp>]
+(code.h, compiler.h, compile.c, linker.c, signal.c)
+
+[20000919]
+
+compiled code が compiled code を呼ぶ際も
+きちんと StackOverflowError が発生するようにした。
+マクロ CAUSE_STACKOVERFLOW (compiler.h) で
+このチェックを行うか否かを制御できる。
+(code.c, signal.c, compiler.h)
+
+クラスの初期化時に、final クラスの全メソッドに final 属性を付けるようにした。
+(compiler.c)
+
+末尾再帰のジャンプへの変換の適用範囲を広げた。
+static bind 可能なメソッド呼び出しの直後が *return 命令ではなくて
+*return 命令への goto である場合にも適用できるようにした。
+(see [20000913])
+(compile.c)
+
+try 節中にある再帰呼び出しは、return 後に catch 節が実行され得るから
+末尾再帰足り得ないのに、末尾再帰として扱ってしまっていた。修整。
+このために、例外が発生していない状態 (ee->exception.exc == NULL) で
+searchCatchFrame() を呼んだ場合、例外の種類に関係なく PC だけ見て
+結果を返すようにした。
+[Thanks 前田さん <shugo＠ruby-lang.org>]
+(compile.c, runtime.c)
+
+0.6.7 リリース。
+
+[20000918]
+
+これまで、resolve (ResolveClassConstantFromClass2()) の失敗は
+すべて NoClassDefFoundError を throw するコードに変換していたところ、
+本当に NoClassDefFoundError が throw された際にだけ、そうするようにした。
+Kaffe 1.0.5 の regression テストのひとつ、CLTestConc にて問題が発覚。
+resolve 中に Thread#stop() で止められた際にも停止せずに、
+NoClassDefFoundError を throw してしまっていた。
+(compile.c, compiler.c, compiler.h)
+
+配列の境界チェックの方法を変更。これまで
+  %edi = length,  check index < 0,  check index >= length
+と処理してきたところ、
+index - length 後のキャリーフラグを見て一度で判断するようにした。
+Linpack benchmark: 13.733 -> 14.306 と向上 (Pentium II / 333 MHz)。
+[Thanks 石崎さん <ishizaki＠trl.ibm.co.jp>]
+(code.c)
+
+配列 jumpret_table を排した。
+(compile.c, gentable.rb)
+
+[20000913]
+
+末尾再帰を、メソッド先頭へのジャンプに変換する最適化を実装。
+マクロ ELIMINATE_TAIL_RECURSION (compiler.h) で有効になる。
+このために、内部命令 invoke_recursive{,_1,_2,_3} と start を用意。
+(code.c, compile.c, opcode_internal.h)
+
+0.6.6 リリース。
+
+[20000912]
+
+(MetaVM) 遠隔操作を行わないプログラムがきちんと動作するようになった。
+
+[20000911]
+
+static bind 可能なメソッドの呼び出しで、コンパイル済みかどうかの判定を省く
+ために、あらかじめコンパイルしてしまうことで判定を省くオプション
+EAGER_COMPILATION を用意。
+(compiler.h)
+
+[20000910]
+
+メソッドの末尾が return, [ifald]return 命令で
+内部命令 methodtail へのジャンプを省ける場合には省くようにした。
+(compile.c)
+
+[20000909]
+
+compiled code 中で例外を発生させるために、これまでは
+%eax に例外の名前 (char * 型) を、%edx にメッセージ (char * 型) を
+入れて内部命令 exc_handler を実行していたところ、
+%eax には例外の ID (unsigned char 型) を入れるように変更した。
+生成コード量の削減のため。
+例えば、内部命令 array_check のサイズは 38 バイトから 30 バイトに減った。
+(code.c, code.h)
+
+配列の境界チェックの際に、これまでは
+  check index < 0,  %edi = length,  check index >= length
+という順で処理してきたところ、length の取得を最初に行うようにした。
+Linpack benchmark: 13.205 -> 13.464 と微妙に向上 (Pentium II / 333 MHz)。
+(code.c)
+
+[20000906]
+
+(MetaVM) MetaVM がきちんと動作するように修整を始めた。
+ついでに、これまで JDK 1.1.X でしか動作しなかったので、
+JDK 1.2 以降をターゲットに作業開始。
+
+[20000905]
+
+JIT 用の例外表 (throwentry 型) の中でバイトコード上プログラムカウンタを
+unsigned char で扱っていたのを、uint16_t に修整。
+例外の catch で問題が起きていた。
+(compiler.h, computil.c, compile.c)
+
+pre-assembled code 中の条件分岐命令を分岐予測の既定値を考慮したものにして
+高速化を計ったつもりだったのを、元に戻した。
+CaffeineMark 3.0 の Sieve では高速になっていたが、
+SPEC JVM98 では全般に遅くなっていた。
+(see [20000429])
+(code.c)
+
+0.6.5 リリース。
+
+[20000903]
+
+バイトコード命令 invokespecial, invokestatic で呼び出しを
+省略できる場合に、バイトコード命令を JVM に存在しない shuJIT 内部命令
+(invokeignored_static, invokeignored_static_quick) に書き換えてしまっていた。
+修整。
+(compile.c)
+
+呼ばれたメソッドが例外を throw したかどうかの判定を、
+callee から caller に移した。
+これまで JIT compiled code からの return 時に、
+%eax に !exceptionOccurred(ee) を入れていたが、これを省いた。
+return 後に %eax が空いた。
+(code.c)
+
+0.6.4 リリース。
+
+[20000902]
+
+dstore, fstore, dastore, fastore についても、直前の内部命令 dst, fst と
+combine する peephole 最適化を実装した。
+Linpack benchmark の結果が 13.205 に向上 (Pentium II / 333 MHz)。
+(optimize.c, code.c)
+
+[20000901]
+
+浮動小数点数の配列から faload, daload で値を得る際に、
+スタックや整数レジスタを経由させないための peephole 最適化を実装した。
+内部命令列 laload, flush_cache, dld を daload_dld に変換する。
+Linpack benchmark の結果が 9.035 -> 11.257 と向上 (Pentium II / 333 MHz)。
+(optimize.c, code.c)
+
+内部命令列 dst, fill_cache, lstore を dst_dstore に変換する
+peephole 最適化を実装。
+(code.c, optimize.c)
+
+[20000829]
+
+0.6.3 リリース。
+
+これまで内部命令の番号は 256 から始めていたところ、
+230 から 253 までの値も使うことにして、
+内部命令の最大番号を 333 から 309 と小さくした。
+libshujit.so のサイズが約 4 KB 減少。
+内部命令ひとつあたり 200 バイト消費している。
+(opcodes_internal.h)
+
+ループの先頭を 16 バイト境界に align するために、これまで単に
+0x90 (nop) を詰めていたところ、0xeb XX (jmp XX) を詰めるようにした。
+(compile.c)
+
+[20000828]
+
+スタック状態の更新 (updateStates()) のバグを修整。
+goto, ret 命令の後の状態をマクロ STATE_AFTER_JUMP の値に設定し損ねていた。
+CaffeineMark 3.0 の Logic, String のスコアが大きく向上
+(Logic: 4900 -> 5900, String: 1800 -> 2350)。
+(compile.c)
+
+ジャンプ命令の次だけでなく、return, [ilfda]return 命令の後の状態も
+updateStates() 内で 0 に固定するようにした。
+(compile.c)
+
+[20000827]
+
+内部命令 inv_vir_varspace にて、本来ならローカル変数の領域は
+mb->nlocal - mb->args_size とすべきところ、条件分岐を減らすため
+単に mb->nlocal にした。
+(code.c)
+
+[20000826]
+
+resolveExcRetSwitch() (compile.c) でも、
+jmp (0xe9) XX XX XX XX を jmp (0xeb) XX に書き換えるようにした。
+(see [20000822])
+(compile.c)
+
+0.6.2 リリース。
+
+関数呼び出しの際に %esi をスタックに退避するのをやめた。
+マクロ FUNCCALL* (code.h) から、pushl, popl を削除。
+(code.h)
+
+メソッド呼び出しの際に %esi をスタックに退避するのをやめた。
+内部命令 inv_core のコード (code.c) を変更。
+(code.c)
+
+[20000825]
+
+invoke* 命令を、いくつかの内部命令に分割。
+(opcodes_internal.h, code.c, compile.c)
+
+invokevirtual 命令に対して、これまで常に
+マクロ obj_array_methodtable() (interpreter.h) 相当の
+コードを生成してきたところ、java.lang.Object 以外に対する呼び出しに対しては
+マクロ obj_methodtable() 相当のコードを生成するようにした。
+(code.c, compile.c)
+
+[20000822]
+
+resolveJumpInstructions() (compile.c) にて、
+jmp (0xe9) XX XX XX XX を jmp (0xeb) XX に書き換えるようにした。
+CaffeineMark 3.0 の Logic のスコアが大きく向上: 4400 -> 4900。
+(compile.c)
+
+[20000821]
+
+monitorenter, monitorexit 命令で monitorEnter2(), monitorExit2() を呼び出す際、
+TOS 付近を保持するレジスタ %edx, %ecx の保存を忘れていた。
+(code.c)
+
+内部命令 invokeignored_quick でも SIGSEGV で NullPointerException を
+検出するようにした。これまでは明示的に NULL かどうかチェックしていた。
+(code.c)
+
+static bind 可能なメソッドの呼び出しを内部命令 invokeignored_* に変更する際、
+コンストラクタ呼び出しについては null check のコードを生成しないようにした。
+null に対するコンストラクタ呼び出しは起き得ないので。
+(compile.c)
+
+あるコードを一度だけ実行させるための自己書き換えの方法を変えた。
+nop 命令を上書きする方法から、jmp XX (0xeb XX) を上書きする方法に変えた。
+(code.c)
+
+0.6.1 リリース。
+
+[20000820]
+
+athrow, monitor{enter,exit} 命令でも SIGSEGV で NullPointerException を
+検出するようにした。これまでは明示的に NULL かどうかチェックしていた。
+マクロ NULL_TEST_CANT_BE_ELIMINATED() (code.h) を排した。
+(code.c, code.h)
+
+自己書き換えがまったく行われていなかったのを修整。
+(code.c)
+
+[20000818]
+
+マクロ OBJ_ARRAY_METHODTABLE() (code.h) のわずかな無駄を省き、
+destination を %eax に特化させた版 OBJ_ARRAY_METHODTABLE_TO_EAX を用意した。
+(code.h)
+
+[20000817]
+
+メソッド呼び出し時の処理で、compiled code を直接呼び出す際には
+不要なもの (returnpc と lastpc の設定) を削減。
+(code.c)
+
+0.6.0 リリース。
+
+[20000816]
+
+JIT compiled code からのメソッド呼び出しで、
+呼び出し先が JIT compiled code かどうかの判定を
+invocationHelper() (runtime.c) から compiled code に移した。
+(code.c, runtime.c)
+
+JIT compiled code どうしが直接呼び合うと JavaFrame が作成されないので、
+framePrev() (compiler.c) をきちんと実装した。
+framePrev() からフレームポインタ (%ebp) を得られるように、
+EE()->current_frame->vars にその時点の %ebp を入れるようにした。
+(code.c)
+
+仕方なく、メソッドのコンパイル後に
+  methodblock->fb.access |= ACC_MACHINE_COMPILED
+とするようにした。
+これをしておかないと、JVM はコンパイル済みフレームとみなしてくれないため。
+(compile.c)
+
+JIT compiled code どうし呼び出す状況できちんと働くような
+内部命令 direct_inv を実装した。
+この内部命令は static bind 可能なメソッドの頭に挿入され、
+呼び出し元のコードを書き換える。
+(code.c)
+
+[20000814]
+
+code DB にコードを保存する前に、tableswitch, lookupswitch 命令のために
+assembledCode() (code.c) のアドレスを解決してしまっていた。
+assembledCode() のアドレス解決を resolveExcRetSwitch() (保存前) から
+resolveDynamicConstants() (ロード後) に移した。
+(compile.c)
+
+code DB を有効にした場合、内部命令 invokestatic_quick は使わずに、
+invokestatic 命令を使うようにした。
+クラスが初期化済みであることを仮定できないため。
+(compile.c)
+
+getstatic{,2}についても、
+code DB が有効な場合には quick 命令を使わないようにした。
+demo/applet/WireFrame/example1.html で問題が起きた。
+(compile.c)
+
+invocationHelper() (runtime.c) にて、JIT compiled code を呼び出す際には
+info = (CodeInfo *)method->CompiledCodeInfo を実行しなくて済むようにした。
+(runtime.c)
+
+[20000813]
+
+使えなくなっていた code DB 機能がきちんと動作するようにした。
+(compile.c)
+
+[20000811]
+
+Blackdown JDK 1.2.2 FCS では、RC4 までとは異なり、
+EE()->exceptionKind が EXCKIND_NONE 以外、
+つまり exceptionOccurred(ee) が真の状態だと、
+constant pool のエントリの解決 (ResolveClassConstantFromClass2()) が失敗する。
+searchCatchFrame() (runtime.c) で問題が顕在化したので、
+Resolve..() を呼び出す際は EE()->exceptionKind を
+EXCKIND_NONE にするようにした。
+(runtime.c)
+
+[20000810]
+
+compiler.h から、内部命令の #define を opcodes_internal.h に分離した。
+(compiler.h)
+
+[20000809]
+
+makePCTable() (compile.c) 中で、
+processAnOpcode() が失敗した場合に -1 を返すという仮定を止めた。
+(compile.c)
+
+[20000731]
+
+ldiv 命令で __divdi3(), __moddi3() を呼び出す際、
+%ebp, %esi (変数 vars 相当) だけでなく、%ebx もバックアップ、
+signal handler でリストアするようにした。
+環境によっては %ebx を壊されることがあるため。
+(code.c, signal.c)
+
+symbolInSystemClassLoader() でシンボルのアドレスを探す際、
+FreeBSD 上の JDK 1.2.2 では jre/lib/i386/classic/libjvm.so からも
+探すようにした。
+(linker.c)
+
+[20000727]
+
+once_in_new() (runtime.c) で、現在実行中のメソッドが所属するクラスを、
+ee->current_frame->current_method->fb.clazz として取得するのを止め、
+引数として受け取るようにした。
+JIT compiled code どうしの直接呼び出しで JavaFrame を作らない場合でも
+うまく動くように。
+(runtime.c, code.c, compiler.h)
+
+[20000722]
+
+内部命令 direct_inv を追加。この命令は、
+compiled -> invocationHelper() -> invokeJITCompiledMethod() -> compiled
+という call chain を、直接呼び出し (compiled -> compiled) に
+自己書き換えする。
+back trace の補整 (JITInterface.CompiledFramePrev() の処理) は未実装。
+compiled code の 2度目の呼び出しで、自己書き換えが起こる。
+1度目は、compileAndInvokeMethod() -> invokeJITCompiled() -> compiled と、
+call chain が通常とは異なるため。
+(code.c, compile.c, compiler.h)
+
+[20000716]
+
+invocationHelper() (runtime.c) から JIT compiled code への返り値を、
+ee->exceptionKind にした。
+(runtime.c, code.c)
+
+[20000715]
+
+invokeJITCompiledMethod() (invoker.c) から JIT compiled code を呼んだ際、
+これまでは JIT compiled code 側で opcode[-1] (, opcode[-2]) に返り値を
+設定していたところ、invokeJITCompiledMethod() 側で行うようにした。
+(invoker.c, code.c)
+
+JIT compiled code から return する際、
+%eax に ee->exceptionKind を入れるようにした。
+JIT compiled code どうし直接呼んだ場合に備えて。
+(code.c)
+
+[20000714]
+
+JIT compiled code から invocationHelper() (runtime.c) を呼んで戻った後、
+%ecx, %edx の内容を破壊しないようにした。
+JIT compiled code どうし直接呼び合えるようにするための布石。
+(code.c, compile.c)
+
+[20000712]
+
+例外の instantiation 処理 (内部命令 exc_new) も
+compiled code の外 (関数 exceptionHandlerWrapper) に移した。
+(see [20000710])
+(compile.c, code.c)
+
+[20000710]
+
+invokeignored_static 命令にも、クラスの初期化コードを持たない
+invokeignored_static_quick 命令というバリエーションを用意した。
+(compile.c, code.c)
+
+例外を扱うコード (内部命令 exception_handler) の処理を、
+compiled code の外 (関数 exceptionHandlerWrapper) に移動。
+生成されるコードのサイズを削減。
+(code.c)
+
+[20000708]
+
+invokestatic, invokestatic_quick 命令の実行時、
+クラスが初期化済みかを常にチェックしてしまっていたのを止めた。
+コンパイル時に初期化済みのクラスについては、初期化コードを生成しない。
+(compile.c, code.c)
+
+[20000706]
+
+自己書き換えの方法を変更。
+1 バイトずつ 2回書き換えていたところ、2 バイトまとめて書き換えるようにした。
+他のスレッドが実行中のコードを書き換える場合の安全性が向上。
+(code.c)
+
+getstatic, putstatic, getstatic2, putstatic2 命令の実行時、
+クラスが初期化済みかを常にチェックしてしまっていたのを止めた。
+コンパイル時に初期化済みのクラスについては、初期化コードを生成しない。
+(compile.c, code.c)
+
+[20000430]
+
+0.5.2 リリース。
+
+[20000429]
+
+ループの先頭を 16 バイト境界に整列するようにした。
+(compile.c)
+
+configure スクリプトが pgcc を認識するようにした。
+(configure.in)
+
+pre-assembled code 中の条件分岐命令を、
+分岐確率を考慮したものに変更した。
+(code.c)
+
+[20000426]
+
+0.5.1 リリース。
+
+[20000425]
+
+0.5.0 リリース。
+
+JDK 1.1 用の関数 InitClass() (in runtime.c) にて、
+ResolveClass() (JDK 内関数) を呼ぶ前に methodblock->info を
+初期化しておくようにした。
+このために initializeClassForJIT() (in compiler.c) のインタフェースを変えた。
+ResolveClass() が InitializeForCompiler() (JDK 内関数) を呼ぶ前に
+methodblock->info が要求されて SIGSEGV が発生していた。
+JPython 1.1 で発覚。
+[Thanks 高橋秀明さん <htaka＠nalgo.co.jp> for a bug report]
+(runtime.c, compiler.c, compiler.h)
+
+lookupswitch 命令で npairs が 0 の場合を想定していなかったのを修整。
+JPython 1.1 で発覚。
+[Thanks 高橋秀明さん <htaka＠nalgo.co.jp> for a bug report]
+(code.c)
+
+浮動小数点数のストア、ロードを除去する最適化を、
+単精度数については行わないようにした。
+丸め精度を倍精度に設定したままで
+Java 言語仕様が定めるセマンティクスを守るため。
+(optimize.c)
+
+[20000424]
+
+basic block を認識するようにした。
+makeBlockStruct() (in compile.c) を用意。
+peephole 最適化の際に基本ブロックをまたいでの最適化を抑制するため。
+(compile.c, compiler.h, optimize.c)
+
+[20000423]
+
+内部命令が保持するバイトコード上のプログラムカウンタを、
+バイトコード命令としては存在しない命令についても
+きちんとした値が入るようにした。
+processAnOpcode() (in compile.c) のインタフェースを変更。
+ジャンプ先がきちんとあるバイトコード命令の先頭を指すように。
+(compile.c, compiler.h)
+
+内部命令表のエントリを削除する pctableDelete(), pctableNDelete() (computil.c)
+のバグを修整。
+(computil.c)
+
+倍精度数の四則演算命令 (dadd, dsub, dmul, ddiv) や
+frem などの pre-assembled code を変更。
+最適化しやすいように単精度数と同じ方式にした。
+このために、内部命令 dld8 を追加。
+この変更により、プログラムによっては遅くなった。
+(code.c, compiler.h, compile.c)
+
+optimize.c に、内部命令を peephole 最適化する関数
+optimizeInternalCode() を用意。
+マクロ OPTIMIZE_INTERNAL_CODE (in compiler.h) で
+最適化を行うか否かを制御する。
+(optimize.c, compiler.h)
+
+FPU のレジスタからメモリへのストア、ロードを combine する最適化を実装。
+Linpack benchmark の結果が 1.11 倍になった。
+(optimize.c)
+
+[20000422]
+
+x86 の cdq 命令を movl %eax,%edx, sarl $31,%edx と 2命令に分割。
+しかし整数の除算、剰余命令 (idiv, irem) では
+演算にかかる時間が支配的なので性能向上は見えず。
+(code.c)
+
+compiler.h でマクロ FORCE_DOUBLE_PRECISION が定義された場合、
+JIT 初期化時に丸め精度を倍精度に設定するようにした。
+倍精度に設定することで、デフォルトで拡張精度になっている
+JDK 1.1.X for Linux のような環境でも確実に
+JLS の規定通りのセマンティクスを達成できる。
+(compiler.h, compiler.c, compile.c, code.c)
+
+浮動少数点数の四則演算命令 ([fd]{add,sub,mul,div}) を
+複数の内部命令に分解した。
+例: 通常は dmul -> dld, dmul, dst
+strictfp の場合は dmul -> strict_dprep, dld,
+strict_dscdown, dmul, strict_dscup, dst, strict_dsettle
+(compiler.h, code.c, compile.c)
+
+内部命令 fill_cache と逆に、レジスタ %ecx, %edx の内容を
+スタックに書き戻す flush_cache 命令を用意。
+(code.c)
+
+[20000421]
+
+内部命令を保持する構造体 pcentry に、メンバ operand を追加。
+コンパイルの初期段階で命令のオペランドをここに格納しておく。
+後続パスにて、バイトコードの領域を参照する必要がほとんどなくなった。
+peephole 最適化への布石。
+(compiler.h, compile.c)
+
+バイトコード命令 [ifa]load_[0123] に対応する内部命令を iload に、
+[ld]store_[0123] に対応する内部命令を lload に変更。
+これまではバイトコード命令 == 内部命令だった。
+(code.c, compile.c)
+
+sysAssert() を使い始めた。
+(compile.c)
+
+[20000420]
+
+内部命令がクラスファイル中の命令と異なる類の命令に
+wide prefix が付いていた場合に、内部命令への変換をし損ねていた。
+(see [20000419])
+(compile.c)
+
+バイトコード命令のカウント方法を修整。(see [19990815])
+構造体 CompilerContext のメンバ ninsn の扱いを変えた。
+(compile.c, computil.c)
+
+[20000419]
+
+FreeBSD でも libc, libm を JVM_LoadLibrary() するのを止めた。
+constants.c 中の表 (配列) func_table[][][] 中に直接関数名を書き、
+アドレスはダイナミックリンカに解決してもらうことにしたことに伴う変更。
+(see [19990223])
+(compiler.c)
+
+processAnOpcode() (in compile.c) での wide 命令群の扱いに問題があった。
+wide prefix が付いた命令を内部命令に変換していなかった。修整。
+[Thanks 志村さん <kouya＠flab.fujitsu.co.jp>]
+(compile.c)
+
+[20000415]
+
+シンボルの解決方法を変更した。
+これまでは関数名の文字列を constants.c 中の表 (配列) に保持していたところ、
+はじめから表には関数のアドレスを入れておくようにした。
+これに伴い、initFunctionSymbols() (in compile.c) が不要になった。
+[Thanks 丸山さん <fuyuhik8＠is.titech.ac.jp>]
+(gentable.rb, compile.c, compiler.c)
+
+[20000330]
+
+compiler.h でマクロ STRICT_FSCALE_USE_FLOAT が定義されていない場合に
+(double 型ではなく) 整数型で scale を用意するようにした。
+(code.c)
+
+[20000221]
+
+0.4.2 リリース。
+
+[20000214]
+
+オプション cmplatload がきちんと働くようにした。
+initializeClass() にて、compileClass() を
+メソッドの JIT 向け初期化処理の後で呼ぶようにした。
+また、JIT の初期化時にすでにロードされているクラスは、
+すべてを初期化してからコンパイルするようにした。
+(compiler.c)
+
+[20000210]
+
+0.4.1 リリース。
+
+[20000206]
+
+JNI のネイティブメソッドを直接呼び出す際に(see [19990827])、
+synchronized メソッドかどうかの判定法を誤っていた。
+access & ACC_SYNCHRONIZED と書くべきところを access & ACC_STATIC と…修整。
+(runtime.c)
+
+マクロ EXPAND_JAVASTACK{,_FOR_NATIVE}, CREATE_JAVAFRAME{,_FOR_NATIVE} を
+書き換えた。
+(compiler.h)
+
+[20000130]
+
+`fstp %st(0)' を `ffreep %st(0)' と `fcompp' に置き換えた。
+(code.c)
+
+[20000101]
+
+0.4.0 リリース。
+
+[19991228]
+
+JIT のシグナルハンドラから目的の sigcontext まで到達する方法を、
+あらかじめ JIT 初期化時に求めておくようにした。
+examineSigcontextNestCount() を JIT のシグナルハンドラに設定し、
+int $0x3 で割り込みを発生させ、その関数内で到達法を求める。
+native threads と green threads で探し方が異なる。
+[Thanks OpenJIT team <openjit＠is.titech.ac.jp>]
+(signal.c, compiler.h)
+
+スタック上で目的の sigcontext を探す際、これまでは
+セグメントレジスタ ds,es,fs,gs の値を手がかりにしていたが、
+%eip レジスタ (プログラムカウンタ) を手がかりに使うようにした。
+(signal.c)
+
+sigcontext を探す際の手がかり変更に伴って不要になった
+変数 reg_[gfed]s およびその初期化処理を削除した。
+(compiler.h, compiler.c)
+
+JDK 1.1 で #include ARCH/sysmacros_md.h する際に、
+JDK_HOME/include(-old)/green_threads ディレクトリが存在するか否かによって
+マクロ NATIVE を #define するかしないかを決めねばならない。
+そのために、configure で green_threads ディレクトリの有無を判定するようにした。
+(configure.in, config.h.in)
+
+Linux 2.2 が持っている <asm/ucontext.h> を Linux 2.0 は持っていないので、
+このヘッダの存在を configure で調べるようにした。
+(configure.in, config.h.in)
+
+examineSigcontextNestCount() を実行するための割り込みを、
+0x3 から 0x10 にした。0x3 (SIGTRAP) を使うと、
+それ以降 gdb が処理を続けられなくなってしまうため。
+int $0x3 とそれ以外では、sigcontext.sc_eip の値
+(int $0x3 では次の命令を指す、他は int 命令を指す) や
+命令のサイズ (int $0x3 は 1バイト、他は 2バイト) が異なるので注意。
+(compiler.c, signal.c)
+
+新しい (2.9.5.0.22) binutils になって、
+objdump による `call 即値' のディスアセンブル結果が変わった。
+次の行に `XXX: R_386_PC32 *ABS*' を表示するようになった。
+それに応じて、gentable.rb にて関数名 *ABS* をスキップするようにした。
+(gentable.rb)
+
+新しい binutils は jmp 0x707070 を jmp 0x70706c にアセンブルするので、
+対策として、ジャンプ先アドレスの格納先の pre-assembled code 中での表現法、
+つまり code.h のマクロ ADDR_* の値を変更し、gentable.rb もそれに対応させた。
+(code.h, gentable.rb)
+
+code.h のマクロ ADDR_* は例えば 0x70707010 としておいて、
+ディスアセンブル結果から /70 70 70/ を探すようにした。
+しかし binutils のバージョンによっては 3つめの 70 が次の行に表示されて
+/70 70 70/ がマッチしなくなった。そのため、/70 70/ で探すようにした。
+(gentable.rb, code.h)
+
+[19991227]
+
+sigcontext の探し方を変更。単にスタックをなめていたところ、
+ベースポインタをたぐって探すようにした。
+ebp + 3 が sigcontext_t * 型かどうかで判定する。
+[Thanks OpenJIT team <openjit＠is.titech.ac.jp>]
+glibc 2.1.2 の LinuxThreads は sigcontext を 2つスタックに置いてしまい、
+ひとつめに見付かった sigcontext を変更しても、
+シグナルハンドラから戻った際に反映されない。
+そのため、最後に見付けた ebp を採用する。
+(compiler.c)
+
+signalHandler() から例外処理への復帰のために、これまでは目的のアドレスに
+単にジャンプしていたところ、
+Linux では %ebp を設定して return するように、
+FreeBSD では sigreturn(sigcontext_t *) を使うようにした。
+[Thanks OpenJIT team <openjit＠is.titech.ac.jp>]
+FreeBSD で行っていたシグナルの unmask (sigprocmask(SIG_UNBLOCK, ...)) は
+不要になった。
+(compiler.c)
+
+シグナルハンドラの再設定のための変数
+struct sigaction sigActForHandler を排した。
+(compiler.c)
+
+[19991223]
+
+copyright 表示の年に 2000 を加えた。
+ただし、MetaVM のための Java のソースコードは 1999 のままにした。
+
+[19991222]
+
+JIT の初期化関数 java_lang_Compiler_start が
+java.lang.Compiler クラスが再ロードによって複数回呼ばれてしまう問題への
+対処法を変更。フラグで検出していたところ、Compiler クラスに sticky 属性を
+付与することにした (CCSet(..., Sticky))。(see [19990514])
+(compiler.c)
+
+[19991209]
+
+shuJIT では、フィールドアクセスだけでなく、メソッド呼び出しについても
+きちんと VerifyFieldAccess でアクセス権限チェックを行っている。
+(see [19991003]) このチェックによって、inner クラスから/へのアクセスでも
+IllegalAccessError が発生してしまっていた。
+inner クラスからみのアクセスを許すように穴をあけた。
+NetBeans 2.1.2 で問題になっていた。
+(compile.c)
+
+[19991204]
+
+JDK 1.2 の場合、シグナルハンドラから例外処理コードへのジャンプは
+単に return TRUE すればよいはずが (see [19990725])
+JDK 1.2.2rc2 for Linux にて、return 後に
+SIGSEGV が発生してしまうので、JDK 1.2 でも JDK 1.1 と同じ方法で
+ジャンプするようにした。
+(compiler.c)
+
+[19991106]
+
+strictfp の scaling を fscale 命令で行う場合、
+scale を double 型(64bit) ではなく、int 型(32bit) で用意しておく方法を用意。
+マクロ STRICT_FSCALE_USE_INT で制御。
+FPU レジスタ - メモリ間のトラフィック削減を狙う
+…が、遅くなった (on PentiumII)。ので却下。
+(compiler.h, code.c)
+
+int 型(32bit) をやめて、float 型(32bit) にした。
+マクロ STRICT_FSCALE_USE_FLOAT で制御。
+double 型(64bit) の場合と性能がほぼ変わらない。
+(compiler.h, code.c)
+
+[19991016]
+
+64bit 整数(long)型の 0除算で、__divdi3() 中で発生した SIGFPE を
+きちんと扱えていなかったのを修整。
+(compiler.c, code.c)
+
+glibc 2.1 で、stdout のシンボル、取得方法が変わったことに対応。
+(code.h)
+
+スタック上で構造体 sigcontext を探す幅を広げた。50 word -> 100 word。
+glibc 2.1 では 70 を越えているため。
+(compiler.c)
+
+0.3.13 リリース。
+
+[19991006]
+
+0.3.12 リリース。
+
+[19991004]
+
+java.lang.Math#exp() の special inlining を止めた。
+用意したネイティブコードの挙動が、インタプリタなど他の処理系とは異なる。
+JDK 1.2 ではじめて発覚した。
+倍精度浮動小数点数を文字列に変換する方法が JDK 1.1 とは違うらしい。
+(compile.c)
+
+strictfp のための scale をあらかじめ FPU レジスタにロードするかしないか、
+マクロ STRICT_PRELOAD (compiler.h) で選べるようにした。
+何も考えずにプリロードしてしまうと、strictfp メソッドが
+strictfp メソッドを呼ぶことで、FPU レジスタが溢れてまずいことになるので。
+これを改善できるまで、プリロードは凍結。
+(code.c, compiler.h)
+
+private, protected フィールドへのアクセスチェック (see [19991003]) は、
+JDK 1.2 以降でのみ行うようにした。JDK 1.1 ではチェックしない。
+JDK 1.1 の javac (sun.tools.{java.*,javac.*}) は、アクセサメソッドが
+コンパイル時にインライン展開されてしまっており、
+チェックを厳しくすると IllegalAccessError で javac が動かない。
+(compile.c)
+
+[19991003]
+
+final フィールドへのアクセス (*field*) だけでなく (see [19990828])、
+次の場合にも IllegalAccessError が throw されるようにした。
+チェックに JDK 中の関数 VerifyFieldAccess() (classinitialize.c) を使用。
+  - private フィールド、メソッドへのアクセス、呼び出し。
+  - protected フィールド、メソッドへの別パッケージからのアクセス、呼び出し。
+ただし、呼び出しについて invokeinterface の場合を深く考察していない。
+(compile.c)
+
+strictfp のための scale down and up の処理を、x86 の 
+fscale 命令で行うようにした。ただし、これまでの乗算で行
+う方法と選択して (compiler.h のマクロ USE_FSCALE) コンパ
+イルできるようにした。
+(code.c, compiler.h)
+
+[19990928]
+
+strictfp で、scale down and up のための scale を、
+メソッドの先頭であらかじめ FPU レジスタにロードしておくようにした。
+内部命令 strict{enter,exit} の処理 (丸め精度の設定) を
+fppc_{save,restore} に移し、strict{enter,exit} でロードを行うようにした。
+これまでは必要なときにメモリからロードしていた。
+(code.c)
+
+dadd, dsub, dmul, ddiv 命令の pre-assembled コード中の命令順を変更。
+dmul, ddiv で若干の高速化。
+(code.c)
+
+[19990925]
+
+JDK のインタプリタが assembly code 版か C 言語版かを、
+compiler.h 中で決め打つのではなく、configure で識別するようにした。
+JDK for FreeBSD が、1.1.8 V99-9-22 版から assembly code 版を使い始めたため。
+(configure.in, config.h.in, compiler.h)
+
+0.3.11 リリース。
+
+[19990922]
+
+processAnOpcode() (compile.c) にてクラスのロード
+(ResolveClassConstantFromClass2()) に失敗した場合、
+コンパイルをあきらめるのではなく、NoClassDefFoundError を throw するコードを
+生成するようにした。
+(compiler.h, code.c, compile.c)
+
+[19990910]
+
+0.3.10 リリース。
+
+[19990909]
+
+0.3.9 リリース。
+
+compileMethod() (compile.c) にて、コンパイルが失敗した場合
+例外をクリア (exceptionClear(ee)) するようにした。
+インタプリタに実行させる際、例外が残っているとまずい。
+JMF 2.0 で問題が発現した。
+(compile.c)
+
+[19990908]
+
+構造体 sigcontext の取得方法を変更。
+単純に最初の 2回は探索するのを止め、オフセットが有効かどうかを毎回判定し、
+無効なら探索するようにした。
+signalHandler() (compiler.c) 中の、
+signal 発生時に実行されていたのは compiled code であるという仮定を除去。
+(compiler.c)
+
+構造体 sigcontext を探索するための key として、
+linux ではレジスタ gs, fs, es, ds、FreeBSD では es, ds, cs, ss を用いてきた。
+これを gs, fs, es, ds で統一した。
+(compiler.c, compiler.h)
+
+implements しているはずの interface を implements していない場合に
+getInterfaceMethod() (runtime.c) で invokeInterfaceError() を呼んで
+IncompatibleClassChangeError を生成する。
+その際に、invokeInterfaceError() にきちんとプログラムカウンタを
+渡すようにした。
+(runtime.c, compiler.h)
+
+[19990907]
+
+変数 runtime_debug と同様に、compile_debug を設けた。
+(compile.c, computil.c)
+
+makePCTable() 中で参照するより後 (updateStates()) で
+CompilerContext.may_throw を更新していた。
+これを processAnOpcode() 中で更新するように修整。
+(compile.c)
+
+JIT コンパイル中の排他処理のために Class クラスのオブジェクトの
+モニタを取得していたところ、JIT コンパイラ用のモニタを用意した。
+構造体 CodeInfo にメンバ monitor を用意。
+(compiler.h, invoker.c)
+
+processAnOpcode() (compile.c) にて CompilerContext.may_throw を更新する際、
+変数 code_opcode ではなく調整前の opcode を参照していた。
+(compile.c)
+
+[19990903]
+
+processAnOpcode() (compile.c) から、
+stack state の設定を updateStates() として分離した。
+これに伴い、processAnOpcode() の引数も変更。
+peephole 最適化への布石。
+(compile.c)
+
+[19990830]
+
+内部命令 exc_handler を exc_new と exc_handler に分け、
+メソッドが例外表を持たない場合は exc_handler を生成しないようにした。
+(compiler.h, code.c, compile.c)
+
+[19990829]
+
+例外を throw し得るバイトコード命令を含むメソッドに対して、
+内部命令 exc_handler を生成するようにした。
+そのためにマクロ OPC_THROW, OPC_SIGNAL を用意。
+(compiler.h, code.c, compile.c)
+
+[19990828]
+
+configure を gcc 2.9X に対応させた。
+(configure.in)
+
+自己書き換えでスキップする pre-assembled code を、
+コンパイラの性質の影響をより受けにくいものにした。
+getstatic*, invokestatic 命令のために
+once_InitClass() (runtime.c) を用意した。
+egcs 1.0.3, 1.1.2 と gcc 2.95.1 で ..._REWRITE_OFFSET の値が変わったため。
+(code.c)
+
+0.3.8 リリース。
+
+final フィールドへのアクセスで
+きちんと IllegalAccessError が throw されるようにした。
+本来はバイトコードベリファイアがはじくべきか？
+内部命令 throw_illegalaccess を設け、processAnOpcode() (compile.c) にて
+final フィールドへの putfield* を throw_illegalaccess に変換するようにした。
+内部命令 exception_handler を生成するかしないかの判定を、
+makePCTable() (compile.c) 中で直接行うのではなく、
+構造体 CompilerContext のメンバ may_throw を参照するようにした。
+(compiler.h, code.c, compile.c)
+
+invokeinterface 命令でもきちんと SIGSEGV が発生するように、
+*obj を触るコードを追加した。(cf. 19990826 の invokespecial)
+NetBeans の動作テストで問題が判明した。
+(code.c)
+
+関数呼び出し内で例外が発生したかどうかのチェックを
+自己書き換えでスキップしていなかった。スキップするようにした。
+(code.c)
+
+getInterfaceMethod() (runtime.c) 呼び出し後の例外チェックは
+一度行われればよいため、自己書き換えでスキップするようにした。
+(code.c)
+
+[19990827]
+
+old fashion のネイティブメソッドを、
+invoker を経由せずに直接呼び出すようにした。
+invocationHelper() (runtime.c) にて、
+invoker が invoke{,Synchronized}NativeMethod だった場合、
+JDK の invoke...() 関数を使わずに直接 call する。
+(runtime.c)
+
+[19990826]
+
+processAnOpcode() (compile.c) 中の ResolveClassConstantFromClass2() の
+呼び出しにて、第 4引数の指定方法が一部誤っていたのを訂正。
+`CONSTANT_...' -> `1 << CONSTANT_...'
+(compile.c)
+
+invokespecial 命令できちんと SIGSEGV が発生するように、
+*obj を触るコードを追加した。
+(code.c)
+
+JNI のネイティブメソッドを、invoker を経由せずに直接呼び出すようにした。
+invocationHelper() (runtime.c) にて、
+invoker が invokeJNI{,Synchronized}NativeMethod だった場合、
+JDK の invoke...() 関数を使わずに直接 mb->code を call する。
+(runtime.c)
+
+[19990825]
+
+Java スタックフレームの用意をマクロ (CREATE_JAVAFRAME()) にした。
+(compiler.h, invoker.c)
+
+[19990824]
+
+invokeJITCompiledMethod() (invoker.c) 中で
+alloca(3) を必要なときだけ呼ぶようにした。
+(invoker.c)
+
+構造体 CodeInfo にメンバ char *terse_sig を追加。
+JDK 1.2 の mb->terse_sig と同じもの。
+それを prepareCompiledCodeInfo() (computil.c) で初期化するようにした。
+(compiler.h, computil.c)
+
+[19990822]
+
+内部命令のオペコードとして 254(0xfe), 255(0xff) を使わないようにした。
+それぞれ impdep1, impdep2 命令なので。(cf. VM spec. 6.2 Reserved Opcodes)
+(compiler.h)
+
+内部命令 sqrt,sin,cos,tan,atan2,atan,exp,log,floor,ceil を用意し、
+java.lang.Math クラスのメソッドを pre-assembled code に
+インライン展開するようにした。
+(compiler.h, code.c, compile.c)
+
+private メソッドだけでなく final メソッドも invokevirtual 命令から
+invokespecial 命令に変換するようにした。
+(compile.c)
+
+[19990821]
+
+構造体 pcentry のメンバ byteoff の型を uint32_t から int32_t に修整。
+pctableGet() (computil.c) 中の比較で -1 が 2^32-1 として扱われて
+FreeBSD で Swing を使用した場合に問題が起きていた。
+(compiler.h)
+
+compiled code から invocationHelper() (runtime.c) を呼び出す際に
+%esi, %ebx を保存、復帰するようにした。
+invocationHelper() 中で invokeJITCompiledCode() ヘジャンプするため、
+invocationHelper() による %esi などの復帰を期待できないため。
+(code.c)
+
+オプション frcstrictfp を用意。
+すべての Java メソッドに strictfp のセマンティクスを強制する。
+(compiler.h, compiler.c, compile.c)
+
+0.3.7 リリース。
+
+[19990820]
+
+make 時に config.h が存在しない場合、./configure を実行するのを止め、
+警告して終了するようにした。
+(GNUmakefile.in)
+
+0.3.6 リリース。
+
+[19990818]
+
+fmul, dmul, fdiv, ddiv 命令の strictfp 版である、
+内部命令 fmul_strict, ... を用意した。
+Java Grande Forum の Numerical Working Group が推奨する技法を実装。
+FP-strict の文脈では、overflow を検出するための store-reload technique、
+underflow を検出し、きちんと gradual underflow させるための scale down and up
+を行うようにした。
+参考: Improving Java for Numerical Computation,
+      http://math.nist.gov/javanumerics/
+(compiler.h, code.c)
+
+[19990817]
+
+invokeinterface 命令で getInterfaceMethod() (runtime.c) を呼び出した後、
+例外が発生したかどうかをチェックするようにした。
+(code.c)
+
+make 時に config.h が存在しない場合、./configure を実行するようにした。
+(GNUmakefile.in)
+
+0.3.5 リリース。
+
+例外発生時にスタックをクリアする方法を誤っていた。
+(code.c)
+
+strictfp が指定されたメソッドでは、
+メソッドの頭で FPU の丸め精度を倍精度にし、
+末尾で元の control word に戻すようにした。
+そのために、内部命令 strictenter, strictexit を用意。
+strictfp 対応の準備。
+(code.c, compiler.h, compile.c)
+
+オプション ignstrictfp を用意。
+class, method modifier、strictfp を無視する。
+(compiler.h, compiler.c, compile.c)
+
+[19990816]
+
+バイトコードを書き換える際にきちんと
+ロック (CODE_LOCK(): JDK 1.2, BINCLASS_LOCK(): JDK 1.1) するようにした。
+(compile.c)
+
+内部命令 invokeignored_nocheck を invokeignored_static に改名。
+(compiler.h, compile.c)
+
+内部命令 invokeignored_static でもクラスの初期化を呼ぶようにした。
+(code.c, compile.c)
+
+[19990815]
+
+ジャンプ命令の次の命令の state を 2 から 0 に変更した。
+スタックに何も積まれていない状態で state 2 に遷移することで、
+余計な pop が起きてスタックポインタが過剰に戻り、スタックが破壊されていた。
+(code.h)
+
+内部 opcode、epilogue を導入。
+syncexit と methodtail のどちらかをメソッド末尾と判断するのではなく、
+epilogue を末尾と判断するようにした。
+(compile.c, compiler.h)
+
+compiled code 先頭での %edx, %ecx の保存、末尾での復帰を止めた。
+(code.c)
+
+例外表を持っていないメソッドに対しては、内部命令 exc_handler を
+生成しないようにした。生成コード量を削減。
+(compile.c)
+
+構造体 CompilerContext にメンバ ninsn を追加。
+オプション codesize のために通常のバイトコード命令の数を記憶する。
+(compiler.h, computil.c)
+
+ExecuteJava() を呼ぶ前に、profiling 用のコードを入れた。
+(runtime.c, invoker.c)
+
+SignalError() を、例外発生のたびに呼ぶのではなく
+内部命令 exc_handler で一括して呼ぶようにした。
+生成コード量を削減。
+(code.h, code.c)
+
+0.3.4 リリース。
+
+[19990814]
+
+compiled code の局所変数の領域を、アセンブリコードではなく
+alloca(3) で確保するようにした。
+(invoker.c)
+
+シンボルの解決をコンパイルの度ではなくて、
+JIT コンパイラ初期化に一括して行うようにした。
+(compile.c)
+
+内部 opcode を 1バイトから 2バイトにした。
+(code.h, gentable.rb)
+
+モニタの取得、開放を、invokeJITCompiledMethod() (invoker.c) から
+compiled code に移した。
+内部 opcode、opc_syncenter, opc_syncexit を用意。
+この compiled code は frame->monitor の設定をしないことに注意。
+(code.c, compiler.h, invoker.c)
+
+(MetaVM) synchronized メソッドの呼び出しおよび終了時に、
+遠隔オブジェクトのモニタを取得、開放するようにした。
+(code.c)
+
+[19990813]
+
+Linux でも (struct sigaction).sa_flags に SA_RESETHAND をセットするようにし、
+signalHandler() (compiler.c) 中でシグナルハンドラを再設定するようにした。
+(compiler.c)
+
+[19990808]
+
+compiled code の局所変数の base を、javaframe->vars 経由ではなく、
+引数で受渡しするようにした。
+(invoker.c, code.c)
+
+invoke* 命令の pre-assembled code 中の、
+局所変数が占有するメモリ量を計算するコード (マクロ VARSPACE_*) を変更した。
+(code.c)
+
+[19990806]
+
+tableswitch 命令のジャンプ先表を作成した後、
+コード生成バッファへのポインタを誤って設定していた。修整。
+(compile.c)
+
+0.3.3 リリース。
+
+[19990804]
+
+compiled method からのメソッド呼び出し (invocationHelper()) で、
+mb->invoker が compileAndInvokerMethod() だった際にも
+restack (native -> interpreter) するようにした。
+compileAndInvokerMethod() で JIT コンパイルが起きた場合に
+restack が 2度起きて悲しいが、コンパイルしない場合のために。
+(runtime.c)
+
+[19990803]
+
+オプション (環境変数 JAVA_COMPILER_OPT) の parse 方法を変更。
+(compiler.c, compiler.h)
+
+オプション cmplthreshold を用意。
+cmplthreshold=<整数> と設定すると、メソッドはその回数呼ばれた時点で
+コンパイルされる。
+(compiler.c, compiler.h, invoker.c)
+
+[19990731]
+
+浮動少数点数を整数に変換する [fd]2[il] 命令の pre-assembled code を変更した。
+これまではスタックポインタが指すアドレスより下位の領域、
+つまり未使用のスタック領域に FPU control word を保存していたが、
+使用中の領域に保存するようにした。
+未使用スタック領域に保存しておいた FPU control word の値が破壊されて
+例外のマスクがはずれたために SIGFPE が発生していた恐れがある。
+(code.c)
+
+コンパイル完了時に、mb->access の ACC_MACHINE_COMPILED ビットを立てるのを
+止めた。これにより、クラスファイルが LineNumberTable を持っている場合
+--- javac -g でコンパイルされた場合 --- に、ソースコード中の行が表示される。
+また、この動作は compiler.h 中の #undef CONTROL_COMPILED_FLAG 行で制御できる。
+(compile.c, compiler.h)
+
+0.3.2 リリース。
+
+[19990730]
+
+SIGFPU の原因を探るため、compiler.c に
+fillFPUEnv() と ShowFPUEnv() を用意した。
+(compiler.c)
+
+[19990725]
+
+JDK 1.2 の場合、シグナルハンドラから例外ハンドラヘ制御を移す方法を変えた。
+これまでは、レジスタの復帰など sigreturn(2) 相当の処理を自前で行った後で
+ジャンプしていたが、sigcontext 構造体中のプログラムカウンタを設定して
+単に return するようにした。
+sigprocmask(2) でマスクを外すなどの細かなプラットフォームに応じた処理について
+考慮する必要がない。
+(compiler.c)
+
+signalHandler() (compiler.c) 中で、signalHandler() 自身を
+シグナルハンドラとして再設定していたが、
+シグナルハンドラがリセットされない Linux では再設定を止めた。
+(compiler.c)
+
+JDK 1.2 だけでなく 1.1 でも、クラス初期化のタイミングが JLS の記述通りに
+なるようにした。see [19990514], [19990521]。
+JDK 1.2 の InitClass() の代わりを JDK 1.1 用に用意した。
+これは、マクロではなく関数でなければならない。
+マクロにした場合、自己書き換えのオフセットを変更する必要が生じる。
+JDK 1.2 の場合、すでに InitClass() が呼ばれたかを CCIs(cb, Initialized) で
+判定するが、1.1 では ResolveClass() が呼ばれたかを CCIs(cb, Resolved) で
+判定する。
+(code.c, compile.c, runtime.c)
+
+[19990724]
+
+CompilerContext のメンバ ee の初期化処理を、
+newCompilerContext() から resetCompilerContext() に移した。
+コンパイル中 (processAnOpcode()) に誤った ee を ResolveClassConstant...() に
+渡して、誤った主体によるロックがなされて、
+AWT を使うプログラムがデッドロックしていた。
+(computil.c)
+
+invokeJITCompiledMethod() (invoker.c) 中で、呼び出し元が
+compiled code かインタプリタかの判定方法を変更。
+これまでは mb->invoker を invokeJITCompiledMethod() と比較していたが、
+この方法だと、インタプリタで実行中にコンパイルが完了した場合に誤判定が起こる。
+前メソッド->returnpc が前メソッドのバイトコードを指しているかどうか、
+で判定するようにした。
+(invoker.c)
+
+resolveDynamicConstants() (compile.c) にて multianewarray 命令の場合の処理を
+ResolveClassConstant() から ResolveClassConstantFromClass() に変更。
+ResolveClassConstant() のときは、
+jdk1.2/demo/applets/SpreadSheet/ にて、NoClassDefFoundError が出ていた
+(compile.c)
+
+invokeJITCompiledMethod() (invoker.c) にて、新たな JavaFrame のメンバ
+constant_pool を NULL で初期化するようにした。
+これまでは初期化せずにいた。
+JDK 1.2 で用意されたマクロ IS_JIT_FRAME(...) が、
+メンバ constant_pool を NULL かどうかチェックするので。
+(invoker.c)
+
+[19990719]
+
+32bit 整数の除算 (idiv, irem 命令) で、0x80000000 / (or %) -1 を
+検出するための除数チェックの対象が誤っていた。
+  (%edx が除数), %ecx = %edx, cdq, %edx をチェック
+としてしまっていた。チェック時、%edx には除数ではなく
+被除数の上位 32bit が入っていた。
+(code.c)
+
+[19990711]
+
+sigcontext 構造体の名前を `struct sigcontext' で統一。
+`struct sigcontext_struct' は使わない。
+(compiler.h, configure.in)
+
+0.3.1b リリース。
+
+[19990709]
+
+#include <asm/sigcontext.h> の前に、
+#define sigcontext_struct sigcontext と書いた。
+(compiler.h)
+glibc 2.X では <asm/sigcontext.h> を直接ではなく 
+<sigcontext.h> を include することで上記の置き換え
+(sigcontext_struct -> sigcontext) がなされる。
+しかし libc5 は <sigcontext.h> を持たないため、
+shuJIT のソースでは #include <asm/sigcontext.h> と書きたい。
+
+0.3.1a リリース。
+
+[19990705]
+
+ELF の FreeBSD (>= 3.0) に対応した。
+  - gentable.rb にて、シンボル名先頭の `_' を取り去るのは
+    FreeBSD 2.X の場合のみに。
+
+0.3.1 リリース。
+
+[19990701]
+
+configure が ruby コマンドを見付けられない場合、
+警告を発して終了するようにした。
+(configure.in)
+
+Makefile の名前を以前のように GNUmakefile に戻した。
+(configure.in)
+
+make distclean だけでなく、
+make clean で config.cache を削除するようにした。
+(GNUmakefile.in)
+
+[19990630]
+
+signal handler で、SIGSEGV, SIGBUS だけでなく、
+除算 (idiv, irem, ldiv, lrem) で発生する SIGFPE も扱うようにした。
+0 除算で ArithmeticException を発生させ、
+MIN_VALUE / -1 で結果を MIN_VALUE に、MIN_VALUE % -1 で結果を 0 にする。
+ただし、long 型の MIN_VALUE [/%] -1 については
+ライブラリ関数が適切に扱うことを期待して何もしない。
+(compiler.c, compiler.h, compile.c, code.c, computil.c)
+
+従来のマクロ EXC_BY_SIGNAL を NULLEXC_BY_SIGNAL に変更し、
+ARITHEXC_BY_SIGNAL を新設。
+EXC_BY_SIGNAL はこの 2つの or とした。
+(compiler.h, code.h, compiler.c)
+
+構造体 throwentry にメンバ opcode を追加、
+throwtableAdd() にて opcode も登録するようにした。
+(compiler.h, computil.c)
+
+ldiv, lrem 命令の pre-assembled code にて、
+%ebp レジスタをスタックに積んで保存するようにした。
+0 除算の際に signal handler が利用する。
+(code.c, compiler.c)
+
+[19990524]
+
+code.c のコンパイルフラグに -fno-omit-frame-pointer を追加。
+(Makefile.in)
+
+codedb.c の頭に #include "config.h" を追加。
+先頭でマクロ CODE_DB が必要なため。
+0.3.0 はきちんと動いていなかった…
+
+0.3.0a リリース。
+
+[19990523]
+
+0.3.0 リリース。
+maintenance release である 0.2.11 もリリース。
+
+[19990522]
+
+autoconf に対応。
+./configure; make でコンパイルできるようにした。
+def.mk は不要になったので削除。
+(configure.in, acconfig.h, Makefile.in, 他多数)
+autoheader コマンドで config.h.in を生成、
+autoconf コマンドで configure を生成する。
+
+FreeBSD 2.2.7, gcc 2.7.2.1 で code.c をコンパイルできなくなっている。
+レジスタ割り付けの問題らしい。
+
+new 命令の自己書き換えの方法を変更した。
+オフセットの、コンパイラの性質への依存が弱まった。
+(code.c)
+
+[19990521]
+
+getstatic, putstatic, getstatic2, putstatic2 命令の実行時、
+クラスが初期化されていない場合に (!CCIs(cb, Initialized))
+InitClass() を呼ぶようにした。
+19990514 の変更 (new, invoke* 命令で InitClass()) の延長。
+これによって JDK 1.2 で javac が動作した。
+(code.c, compile.c)
+
+[19990517]
+
+マクロ FAST_INVOKER を廃した。
+(runtime.c, compiler.h)
+
+[19990516]
+
+19990514 に廃した sym_ を再び用意。
+関数のアドレスが、利用する時点で解決されていない場合があるので。
+(compiler.h, compiler.c, invoker.c, runtime.c)
+
+マクロ OBJ_ARRAY_METHODTABLE() (code.h) 中の
+大域変数 classJavaLangObject の値を取得する際に、
+edx など余計なレジスタが使われていた。edi 以外の使用を抑制した。
+(code.h)
+
+invocationHelper() (runtime.c) にて、
+JIT が disable された状況 (java.lang.Compiler#disable()) で、
+invoker として compileAndInvokeMethod() を使っていたバグを修整。
+(runtime.c)
+
+[19990515]
+
+シンボルの解決に JDK 1.2 の classLoaderLink() を使うと
+Java のメソッドを呼び出して嬉しくないので、
+同等 (+α) の C の関数 simbolInSystemClassLoader() を書いた。
+(linker.c, compiler.h, GNUmakefile)
+
+[19990514]
+
+invoke*(), compileAndInvokeMethod() のアドレスを保持する変数
+sym_* を廃した。
+(compiler.h, compiler.c, invoker.c, runtime.c)
+
+FreeBSD 3.0 以上では /usr/lib/aout にある a.out 版 libc, libm を
+ロードするようにしていたところ、ELF 版をロードするようにした。
+(compiler.h)
+
+java_lang_Compiler_start() で排他制御を行うようにした。
+(compiler.c)
+
+JDK 1.2 の場合、クラスを初期化 (InitClass()) のタイミングを
+JLS の記述通り (first active use) にした。
+new 命令と invoke* 命令の実行時、
+まだ初期化が行われていないなら (!CCIs(cb, Initialized)) 呼ぶ。
+自己書き換えを行わない (マクロ NO_REWRITE が定義されている) 場合は、
+実行中に InitClass() を呼ぶようにすると実行のたびに呼んでしまうので、
+コンパイル時に呼んでおいてしまう。
+(code.c, compile.c)
+
+[19990513]
+
+type_table[index] & CONSTANT_POOL_ENTRY_RESOLVED を
+CONSTANT_POOL_TYPE_TABLE_IS_RESOLVED(type_table, index) に書き換えた。
+(compile.c, runtime.c)
+
+[19990511]
+
+invocationHelper() (runtime.c) で、mb->invoker を、
+局所変数 invoker に置き換えた。
+invocationHelper() 実行中に他のスレッドが
+mb->invoker を書き換える場合に備えて。
+(runtime.c)
+
+invoker の名前を返す nameOfInvoker() を用意。
+(runtime.c)
+
+JDK 1.2 で、ExpandJavaStack() を使って次の JavaStack を得た際に、
+ee->current_frame->optop に tmp_frame を書き戻してしまっていた。修整。
+(invoker.c)
+
+[19990510]
+
+マクロ ACC_BEING_COMPILED (19990419 に定義) を廃した。
+代わりに、コンパイル中のメソッドは invoker をインタプリタ呼び出しに
+設定するようにした。
+(compiler.h, invoker.c)
+
+コンパイルの排他制御を、compileAndInvokeMethod() (invoker.c) から
+compileMethod() (compile.c) に移した。
+(compile.c, invoker.c)
+
+[19990430]
+
+monitorEnter(), monitorExit() を、JDK 1.2 ではそれぞれ
+monitorEnter2(), monitorExit2() を使うように全体を書き換えた。
+(invoker.c, computil.c, code.c)
+
+[19990424]
+
+19990419 の変更によってコンパイル中のメソッドが
+interpret 実行され得るようになったため、
+interpret 時に inlining が行われて CompilerContext の pctable が
+バイトコードと食い違い得るようになった。(VoyagerClassLoader#<init> で発生)
+メソッドが呼び出された回数を CodeInfo 中に記録するようにし、
+makePCTable() (compile.c) 中で processAnOpcode() を呼ぶ度に
+その回数をチェックし、呼び出しが起きていた場合には makePCTable() の処理を
+やりなおすようにした。
+メソッド呼び出しが少し遅くなった。要改善。
+(compiler.h, invoker.c, compile.c)
+
+[19990419]
+
+java.lang.Compiler#disable() が呼ばれた状況でも、
+compileMethod() ではコンパイルを行うようにした。
+(compile.c)
+
+コンパイル中のメソッドに対して compileAndInvokeMethod() が呼ばれた場合は
+interpret するようにした。
+メソッドがコンパイルされていることを表すために、
+マクロ ACC_BEING_COMPILED を定義。
+(invoker.c, compiler.h)
+
+コンパイル前のメソッドも ACC_MACHINE_COMPILED をセットしていたところ、
+コンパイル後にはじめてセットするようにした。
+(compile.c, invoker.c, runtime.c)
+
+[19990418]
+
+JDK 1.2 for Linux への対応を開始。
+java full version "Linux_JDK_1.2_pre-release-v1"
+
+[19990402]
+
+FreeBSD でも、マクロ __ELF__ が定義されていたら、
+シンボル頭への `_' の追加はしないようにした。
+(code.h)
+
+[19990331]
+
+(MetaVM) MetaVM サーバに -p <port no.> オプションを実装した。
+対応するプロパティとして metavm.port を見るようにした。
+(MetaVMServer.java, VMAddress.java)
+
+[19990321]
+
+(MetaVM) MetaVM 有効時は、libshujit.so ではなく libmetavm.so が
+作られるようにした。
+(GNUMakefile)
+
+(MetaVM) Skeleton でリクエスト処理中にデバッグメッセージを出力する際、
+出力前に MetaVM.remoteTransparency(false) を呼ぶようにした。
+(Skeleton.java)
+
+(MetaVM) コンストラクタ (<init>) は methodblock->fb.offset が必ず 0 で、
+遠隔呼び出しで実行されていなかった。
+プロトコルを変更し、実行されるようにした。
+(proxy.java, Proxy.java, Skeleton.java, VMOperation.java, vmop.c)
+
+(MetaVM) DistObjectInputStream に、クラスローダを設定できるようにした。
+(メソッド DistObjectInputStream#classLoader(ClassLoader cl))
+そのストリームからオブジェクトが読まれる際、
+クラスはそのローダからロードされる。
+(DistObjectInputStream.java)
+
+(MetaVM) Proxy からクラス生成要求 (NEW, NEWARRAY, ANEWARRAY, MULTIANEWARRAY) を
+送る際、クラスロード元 (VMAddress 型) も送るようにした。
+Skeleton はクラスをそこからロードし、またネットワーククラスローダを
+ObjectInputStream に設定する。
+(code.c, proxy.java, Proxy.java, Skeleton.java)
+
+(MetaVM) Skeleton が、REFERENCE 要求の際 Proxy に
+クラスロード元 (VMAddress 型)を返し、Proxy 側はそこからロードするようにした。
+従来は Class#forName() を呼んでローカルからロードしてしまっていた。
+(Skeleton.java,Proxy.java)
+
+[19990317]
+
+(MetaVM) reset コマンドの処理で、System#gc() を呼ぶようにした。
+(MetaVMServer.java)
+
+[19990316]
+
+(MetaVM) MetaVM を遠隔制御するツール metavmctl を用意し、
+reset コマンドを実装した。reset コマンドによって、
+export表、遠隔クラスローダ、クラス配送デーモンが初期化される。
+(MetaVMController.java, metavmctl, Skeleton.java, MetaVMServer.java,
+ ExportTable.java, RemoteClassLoader.java, ClassDistributionDaemon.java)
+
+(MetaVM) マクロ METAVM_ARRAY を METAVM_NO_ARRAY という
+逆の役割のマクロで置き換えた。
+(compile.c, code.c, def.mk)
+
+[19990315]
+
+(MetaVM) クラス VMAddress に writeObject(), readObject() を実装した。
+(VMAddress.java)
+
+(MetaVM) プロパティ metavm.hostanme で、
+ローカルのホスト名を指定できるようにした。
+(VMAddress.java)
+
+(MetaVM) ネットワーククラスローダを MOBA から移植した。
+オブジェクトの遠隔生成時にも、クラスのロード元を
+単一 JVM と同じにした。
+(ClassDistributionDaemon.java, ClassDistributor.java,
+ LocalClassLoader.java, RemoteClassLoader.java)
+
+(MetaVM) JNI の NewGlobalRef() を呼んだ際に、
+もとの jobject 型変数を NewGlobalRef() の返り値で置き換えるようにした。
+(vmop.c, proxy.c, byvalue.c)
+
+[19990306]
+
+(MetaVM) 遠隔呼び出しのプロトコルを変更。
+メソッド名, signature を送るのを止め、
+methodtable 中の index (uint16_t) を送るようにした。
+例外が発生しなかった場合には null ではなく (byte)0 を返すようにした。
+通信量削減、および、文字列からのメソッド探索の削減により、高速化。
+(code.c, proxy.c, Proxy.java, Skeleton.java, VMOperation.java, vmop.c)
+
+(MetaVM) metavm コマンド (MetaVMServer.java) に
+-n (TCP_NODELAY) オプションを用意した。
+(MetaVMServer.java)
+
+[19990301]
+
+(JITDO) メソッド呼び出しの引数 (Object[])、multianewarray の引数 (int[]) を
+Proxy に変化させずに転送するために wrap するクラス、
+ArrayOfObjectWrapper, ArrayOfIntWrapper を用意した。
+
+(JITDO) これまで参照型の配列 ([L..., [[...) は Copyable だったが、
+あらゆる配列を Copyable でなくした。
+
+(JITDO) 参照型の配列も遠隔生成するようにした。
+
+(JITDO) ExportTable#expire() で
+きちんと expire が行われていなかった問題に対処。
+(ExportTable.java)
+  
+(JITDO) JITDO を MetaVM と改名。
+ついでにクラス Copyable を ByValue と改名。
+
+[19990227]
+
+(JITDO) JITDO.instantiationVM() を呼ばずとも remote flag が on、
+つまり Proxy が遠隔オブジェクトに見えるようにした。
+JIT コンパイラの初期化 (java_lang_Compiler_start()) 時に
+on にするようにした。
+(compiler.c)
+
+(JITDO) オブジェクトに対する操作時に remote flag のチェッ
+ク、オブジェクト instanceof Proxy という順でチェックして
+いたところ、チェック順を逆にした。
+remote flag のデフォルト値を on にしたのを受けて、
+ローカル実行の性能向上のため。
+(code.c)
+
+(JITDO) DistObject*Stream に Buffered*Stream をかました。
+JITDOServer の -b オプションかプロパティ metavm.bufsize で
+バッファサイズを指定できるようにした。
+(Proxy.java, Skeleton.java, JITDO.java, JITDOServer.java)
+
+(JITDO) プロパティ metavm.tcp_nodelay が true, yes, enable などの場合、
+作ったソケットに対して setTcpNoDelay(true) を呼ぶようにした。
+(Proxy.java, JITDOServer.java, JITDO.java)
+
+[19990228]
+
+(JITDO) オブジェクトの位置 (VMAddress) を得るメソッド
+Proxy#address() を用意した。
+(Proxy.java)
+
+デバッグ時、checkcast, instanceof 命令でクラス名を出力するようにした。
+(code.c)
+
+(JITDO) forceToImplement() で元の imethodtable を free() で解放していたが、
+これを止めた。複数クラスで共有され得るので単純に解放はできない。
+メモリリークを起こし得る...
+(type.c)
+
+[19990226]
+
+(JITDO) arraylength 命令に対応。
+
+[19990225]
+
+(JITDO) クラス名を変更。
+JitdoController -> JITDO
+JitdoServer -> JITDOServer
+RequestServer -> Skeleton
+
+(JITDO) これまで配列型は Copyable だったが、
+基本型の配列は Copyable でなくした。
+
+(JITDO) 配列への遠隔参照は現実的ではないと判断。
+簡単に頻繁に呼び出される System#arraycopy() で困ったことになるので。
+マクロ JITDO_ARRAY を新設して選択できるようにした。
+
+[19990224]
+
+(JITDO) 参照型のフィールドに対しても
+32bit 型の読み書きがなされていたのを修整。
+(compile.c)
+
+(JITDO) 配列の読み書きを JITDO 対応にした。
+配列の生成の JITDO 対応は完了していない。
+(code.c, proxy.c, metavm.h)
+
+[19990223]
+
+ライブラリを sysAddDLSegment() する仕組みを変更した。
+FreeBSD のみ libc, libm の sysAddDLSegment() をハードコードしていたところ、
+より generic な仕組みにし、さらに環境変数で変更できるようにした。
+デフォルトで FreeBSD 4.0-current に対応した。
+(compiler.c, compiler.h)
+
+(JITDO) 遠隔オブジェクトに対する monitorenter, monitorexit に対応させた。
+(code.c, Protocol.java, Proxy.java, RequestServer.java, proxy.c, 
+
+0.2.10 リリース。
+IGNORE_DISABLE は #undef に戻した。
+
+[19990222]
+
+(JITDO) きちんと動作させることができた。
+
+[19990221]
+
+checkcast, instanceof 命令の pre-assembled code に
+ClassClass * を書き込む回数を 1回にした。
+(code.c, compile.c)
+
+[19990220]
+
+invoke* 命令の pre-assembled code 中で、%ecx と %edi の役割を入れ換えた。
+(code.c)
+
+(JITDO) 大幅に変更。
+(code.c)
+
+[19990214]
+
+ファイル頭の copyright 表示もきちんと GPL のものにした。
+
+__asm__ を asm に書き換えた。
+
+native code から invokeMethod() (runtime.c) を呼ぶ際に、
+呼び出し時点のスタックポインタを push するのではなく、
+native code で局所変数のベースを計算しておいてそれを push するようにした。
+(code.c, runtime.c)
+
+0.2.9a リリース。
+0.2.9 で #define IGNORE_DISABLE としただけ。java Linpack の結果が良いので。
+jre Linpack での結果は #undef の方が良い。不思議。
+
+[19990210]
+
+FreeBSD では、signal handler を再設定する際に
+その signal (SIGSEGV or SIGBUS) を unblock するようにした。
+signal handler 実行中はその signal は block されているので、
+unblock しておかないと次回の NullPointerException 発生時にハングする。
+(compiler.c)
+
+CompilerContext を必要な度に malloc(), free() していたのを止め、
+CompilerContext のプールを設けて再利用するようにした。
+computil.c の外からは newCompilerContext() ではなく getCompilerContext()、
+freeCompilerContext() ではなく releaseCompilerContext() を使うべし。
+(computil.c, compiler.h, compile.c)
+
+throwtable のデフォルトのサイズを小さくした。1024 -> 8。
+メモリを大きく食う原因だった。
+javac で 45MB ほど食っていたところ、25MB くらいになった。
+(compiler.h)
+
+0.2.9 リリース。
+
+[19990209]
+
+オプション cmplatload を用意。
+クラスをロードした時点でメソッドすべてをコンパイルする。
+JIT が起動した時点ですでにロードされているクラスのメソッドもコンパイルする。
+まだきちんと動作しない。SIGSEGV で落ちる。
+(compiler.c, compiler.h)
+
+FreeBSD で EXC_BY_SIGNAL を有効にすると、まれに SIGALRM で落ちる問題に対処。
+FreeBSD では、signal handler が呼ばれた際に signal に対応する
+handler がクリアされてしまうので、signalHandler() (compiler.c) で
+intrInitMD() を呼ぶことですべての signal handler を再設定していた。
+ところが JDK for FreeBSD の intrInitMD() では SIGALRM に対する不要な設定を
+しているため、Green Threads が設定した handler を上書きしてしまっていた。
+intrInitMD() を呼ぶのを止め、必要な再設定のみ行うようにした。
+(compiler.c)
+
+OS にかかわらず、EXC_BY_SIGNAL が有効な場合に
+signal handler 内で handler を再設定するようにした。
+JDK の signalHandlerPanic() を経由せずに目的の handler が呼ばれるように。
+伴い、sigcontext を最初の 2回は探索するようにした。
+(compiler.c)
+
+[19990208]
+
+0.2.8 リリース。
+
+[19990207]
+
+gdbm_*(), dbm_*() のアドレス解決をリンカに頼らずに、
+dlopen(), dlsym() で行うようにした。
+libgdbm.so, libndbm.so がなくとも動作するように。
+(compiler.c, codedb.c, compiler.h)
+
+code DB 内を閲覧するツール codedbinfo を用意。
+(codedbinfo.c, GNUmakefile)
+
+[19990206]
+
+writeCode() (compile.c) 中ですべて行っていた定数の解決のうち、
+実行のたびに変わり得るものの解決を resolveDynamicConstants() に分離した。
+(compile.c)
+
+マクロ GET_SIGCONTEXT を定義した場合、EXC_BY_SIGNAL にかかわらず、
+signal handler で struct sigcontext の中身を表示するようにした。
+デバッグのため。
+(compiler.c, runtime.c, compiler.h)
+
+getstatic, putstatic が constant pool から参照する フィールドを
+解決 (ResolveClassConstant*()) し忘れていたのを修整。
+(compile.c)
+
+構造体 throwentry の各メンバのサイズを変更。
+throwentry の表も code DB に記録する必要があるため、サイズを小さくした。
+(compiler.h)
+
+生成した native code をファイルに保存、再利用する機能を実装。
+def.mk 中の CODE_DB を有効にしてコンパイルし、
+オプション codedb で利用できる。
+(def.mk, GNUmakefile, codedb.c, compile.c, compiler.c, compiler.h, computil.c)
+
+gcc 2.7 用のアセンブリコード修整スクリプト postcmpl.rb を、
+コンパイラが生成した部分は変更しないようにした。
+`leal \.?LC' にマッチして、かつ次の行が `#APP' だった場合のみ、
+leal を pushl に置換する。
+(postcmpl.rb)
+
+[19990205]
+
+native code から invokeMethod() (runtime.c) を呼ぶ際に、
+%edi, %esi をスタックに退避するのをやめた。メソッド呼び出し高速化。
+(code.c)
+
+invokeMethod() (runtime.c) の引数の順を変えた。
+mb->invoker() を呼び出す際に引数 4つの push を省こうという計画への布石。
+計画は噸座…
+(runtime.c, compiler.h, code.c)
+
+オプション igndisable だけでなく、マクロ IGNORE_DISABLE で、
+java.lang.Compiler#disable(),enable() を無効化できるようにした。
+(compiler.c, runtime.c, invoker.c, compiler.h)
+
+invokeMethod() 中で、生成された native code を呼ぶ際の
+条件判断をひとつ減らした。メソッド呼び出し高速化。
+(runtime.c)
+
+[19990201]
+
+struct sigcontext を探す起点の表現方法を変えた。
+ひとつ目の局所変数のアドレス + 16 -> &uc
+(compiler.c)
+
+[19990130]
+
+signal を利用して null check を削減した。
+ある場合に SIGSEGV or SIGBUS を NullPointerException と見倣す。
+(code.c, code.h, compiler.c compiler.h)
+
+pre-assembled code の頭に、そのコードが NullPointerException を
+throw し得るかどうかのフラグを加えた。
+(code.h, code.c, gentable.rb)
+
+構造体 CodeInfo 関係の関数を runtime.c から computil.c に移した。
+(runtime.c, computil.c)
+
+構造体 CompilerContext のメンバであった
+exc_handler_nativeoff, finish_return_nativeoff
+を構造体 CodeInfo に移した。
+signal handler から例外ハンドラのアドレスを見付けるために
+実行中にも exc_handler_nativeoff が必要となったため。
+(compiler.h, compile.c)
+
+0.2.7 リリース。
+
+[19990127]
+
+long 型の shift 命令 (lshl, lshr, lushr) の pre-assembled code の
+バグを修整。やはり egcs-1.0.3 が生成するコードがベース。
+(code.c)
+
+writeCode() (compile.c) 中の、生成したコードを書き込むアドレス
+cc->bufp をキャッシュする変数 bufp の値が、バッファ拡張の際に
+obsolete になるバグを修整。
+数ヵ月前にも同様のバグに悩まされた記憶が…
+(compile.c)
+
+上記修整に伴い、マクロ lastBufend()、構造体 
+CompilerContext のメンバ lastbufp_off が不要になり、削除。
+(compiler.h, computil.c)
+
+[19990121]
+
+pre-assembled code 中のラベル名のスペルミスを訂正。
+  exc_hanlder_shift_done -> exc_handler_shift_done
+(code.c)
+
+long 型の shift 命令 (lshl, lshr, lushr) で、
+`rorb $1,%cl' を `rorb %cl' とした。
+(code.c)
+
+iload_*, lload_* 命令で、
+`movl 0(%esi),...' を `movl (%esi),...' とした。
+(code.c)
+
+invokeJITCompiledMethod() (invoker.c) 中で、
+invoke{,Synchronized}JavaMethod() を呼び出す代わりに処理を書き下した。
+メソッド呼び出しの高速化。
+(invoker.c)
+
+invokeJITCompiledMethod() 中に profiling (java -prof) のための
+時間計測コードを入れた。ただし、デフォルトでは無効化してある。
+マクロ ENABLE_PROFILING で有効に。
+(invoker.c)
+
+0.2.6 リリース。
+
+long 型の shift 命令 (lshl, lshr, lushr) の pre-assembled code を、
+gcc-2.7.2.3 の生成するものから egcs-1.0.3 のそれに変更した。
+(code.c)
+
+[19990120]
+
+生成する native code の頭で行っていた native code のアドレスを求める処理
+  nativecode = mb->CompiledCode
+を、アドレスを必要とする各箇所
+  exc_handler, ret, tableswitch, lookupswitch, new(rewrite)
+に移した。局所変数 nativecode を削除。
+メソッド呼び出しの高速化。
+(code.c)
+
+例外発生時にスタックをクリアするために、スタックのベースを
+native code の局所変数 ostack に保存していた。
+この ostack を削除し、例外発生時にアドレスを計算するようにした。
+(code.c)
+
+native code の局所変数のために 48バイト確保していたところ、
+最低限必要な 4バイトに減らした。
+(code.c)
+
+[19990118]
+
+class initializer はコンパイルしないようにした。
+(compiler.c)
+
+オプション cmplclinit を用意。
+class initializer をコンパイルする。
+(compiler.c, compiler.h)
+
+[19990117]
+
+0.2.5 リリース。
+
+[19990110]
+
+GNU bash, version 2.01.1(1)-release では、シェルスクリプト
+  for subdir in ; do ...
+と in の後が空だと syntax error になる問題に対処。
+bash 1.14.7 では error にならなかった。
+[Thanks 高橋秀明さん <htaka＠nalgo.co.jp> for a bug report]
+(GNUmakefile)
+
+[19990109]
+
+各バイトコード命令の pre-assembled code を
+x86 で未定義である 0xf1 で区切るようにした。
+これまでは 0x0f, 0x0f で区切ってきたのだが、
+これが AMD 3D Now! 命令の prefix として使われ、
+3D Now! 命令に対応した GNU binutils が出てきたため。
+[Thanks 高橋秀明さん <htaka＠nalgo.co.jp> for a bug report]
+(code.h, gentable.rb)
+
+[19990107]
+
+関数 invokeCompiledMethod() を invokeJITCompiledMethod() に改名。
+(invoker.c, compiler.c, compiler.h, runtime.c)
+
+0.2.4 リリース。
+
+[19990106]
+
+java_lang_Compiler_start() (compiler.c) が複数回呼ばれた場合に、
+2回目以降は初期化を実行しないようにした。
+クラス java.lang.Compiler が GC で回収されて再びロードされ、
+Compiler#<clinit> -> Compiler#initialize() -> java_lang_Compiler_start() と
+再び呼ばれてしまうことがあるため。
+Swing の javax.swing.UIManager#initialize() で
+java.lang.Compiler#disable(),enable() を呼ぶために
+java.lang.Compiler が再びロードされる。
+(compiler.c)
+
+オプション igndisable の挙動を変更。
+そもそも java.lang.Compiler#disable(), enable() が働かないようにした。
+(compiler.c, invoker.c, compile.c)
+
+bool_t UseLosslessQuickOpcodes を誤って FALSE にしていたところ、
+TRUE に直した。
+(compiler.c)
+
+java.lang.Compiler#disable(), enable() がきちんと働くようにした。
+余計なチェックの分、メソッド呼び出しの性能は若干低下する？
+disable されている場合、
+compileAndInvokeMethod() (invoker.c) にて、バイトコードを呼び出し、
+invokeMethod() (runtime.c) にて、compileAndInvokeMethod() を呼ぶなら
+restack するようにした。
+(invoker.c, runtime.c)
+
+[19990105]
+
+オプション igndisable を用意。
+java.lang.Compiler#disable() を無効化する。
+(compiler.c, compiler.h)
+
+compileAndInvokeMethod() (invoker.c) にて、JIT が disalble されていたら
+JDK 内の invoke*Method() を呼ぶようにした。
+
+変数 `sym_関数名' として、invokeAbstractMethod(), invokeLazyNativeMethod() の
+アドレスを用意した。
+(compiler.c, compiler.h)
+
+access2invoker() (computil.c) で、invokeAbstractMethod など
+直接関数のアドレスを利用する代わりに sysDynamicLink() で解決しておいた 
+sym_invokeAbstractMethod などを利用するようにした。
+(computil.c)
+
+[19990104]
+
+invokeMethod() (in runtime.c) 中で、static メソッド呼び出しの際に
+クラスオブジェクトを得る処理を pre-assembled code (code.c) に移した。
+CaffeineMark 3.0 の Float, String の結果は向上、
+Linpack benchmark の結果は低下した ???
+(runtime.c, code.c)
+
+[19990103]
+
+クレジット、著作権表示に `1999' を追加。
+
+FreeBSD, gcc 2.7.2.1 で make が通るように、
+GNUmakefile の code.s 周辺を修整。
+(GNUmakefile)
+
+invokeMethod() (in runtime.c) への変更で Linpack for
+Java がかなり遅くなっていたのを、shujit-0.2.3 の 
+runtime.c を参考に修整。
+(runtime.c)
+
+[19981231]
+
+文字列のアドレスを push するコード (PUSH_CONSTSTR(...) in code.h) で、
+gcc 2.7.2.[13] では余計なレジスタ (esi) を使って内容を壊していた。
+egcs 1.0.3 の生成するコードでは問題がなかった。
+gcc 2.7.X で code.o を生成する際は、code.s を
+ruby スクリプト (postcmpl.rb) で修整するようにした。
+[Thanks 高橋秀明さん <htaka＠nalgo.co.jp>
+ and Justin Wells さん <justin＠semiotek.com> for bug reports]
+(postcmpl.rb, GNUmakefile)
+
+[19981228]
+
+invokeMethod() などでの prepareCompiledCodeInfo() の呼び出しを
+initializeClass(), compileClass() (compiler.c) に移動した。
+(runtime.c, compiler.c)
+
+[19981227]
+
+struct CatchFrame (oobj.h) にメンバ state を加えた
+CatchFrame_w_state 型を用意。
+(compiler.h)
+
+内部命令 exc_handler 中で、発見した例外ハンドラが仮定する state に
+遷移するようにした。
+(code.c)
+
+[19981216]
+
+メソッドごとの例外ハンドラへのジャンプ (SIGNAL_ERROR* in code.h) で、
+state 0 に遷移しておくようにした。
+(code.h, code.c)
+
+[19981129]
+
+checkcast 命令で、
+対象オブジェクトが null の場合に is_instance_of() を呼ばないようにした。
+
+[19981030]
+
+(JITDO) JITDO サーバ内の thread pool を作り直した。
+(NET/shudo/metavm/{ThreadPool,JitdoServer,RequestServer}.java)
+
+[19981022]
+
+JVM に SIGQUIT を送ると内部状態をダンプするはずが SIGSEGV が発生していた。
+signalHandler() 中で、showStackFrames(EE()) を止めた。
+(compiler.c)
+
+(JITDO) JITDO サーバの枠組ができた。
+起動スクリプト metavm/bin/metavm を用意。
+
+[19981017]
+
+(JITDO) Runtime Compiler による JVM の分散オブジェクト対応、
+JITDO (JIT Ditributed Object) 実装開始。
+(metavm/, NET/shudo/metavm/)
+
+[19981010]
+
+32bit 整数の除算 (idiv 命令) で、state 4 に限り、
+披除数を 64bit に符号拡張 (x86 の CDQ 命令) するのを忘れていた。修整。
+Swing の JTextArea, JTextField で文字が描画されないバグの遠因となっていた。
+(code.c)
+
+32bit 整数の除算 (idiv 命令) で、披除数を 64bit に符号拡張する前に
+EDX レジスタを無駄に 0 クリアしていたのを省いた。
+(code.c)
+
+0.2.3 リリース。
+
+[19981005]
+
+Linux では、libc の種類によって
+マクロ RESOLVE_SYMBOL_ON_CODE を変えるようにした。
+(compiler.h)
+
+[19981004]
+
+compiledCode() -> assembledCode() と関数名を変えた。
+(code.c, compile.c, compiler.[hc], gentable.rb)
+
+[19981003]
+
+dlopen(..., RTLD_LAZY) でロードしたライブラリ中の関数のアドレスを、
+その関数を実行する前に得られるか (Linux libc5)、得られないか (FreeBSD) に
+依存しないコードとした。変数 `sym_関数名' の導入。
+(compiler.c, compiler.h, compile.c)
+
+libc5 の環境では dlopen(), dlsym() でアドレスを得た関数のコードを
+書き換えられるので、あらかじめ関数のアドレスを解決、書き込んでいたが、
+コードが書き換え可能であることを仮定するのを止めた。
+マクロ RESOLVE_SYMBOL_ON_CODE を #undef。
+glibc2 対応の一環でもある。
+(compiler.h)
+
+0.2.2 リリース。
+
+[19981001]
+
+呼び出されたメソッドがコンパイルされる際、コンパイル中に
+起こる別のメソッド呼び出しによって引数が破壊されることがある問題に対処。
+AWT で左端の MenuBar の文字が表示されないバグの遠因となっていた。
+(invoker.c)
+
+[19980928]
+
+FreeBSD で関数 fmod() のアドレスを解決できていなかったので、
+libc と同様に libm もあらかじめ sysAddDLSegment() しておくようにした。
+(compiler.c)
+
+0.2.1 リリース。
+
+[19980927]
+
+オプション dontcmplvmcls を用意。
+JIT 初期化時に既にロードされているクラスはコンパイルしない。
+(compiler.c, compiler.h)
+
+[19980926]
+
+new 命令で、native code が自身を書き換える際のオフセット、
+FreeBSD の場合の値を記述。
+(code.c)
+
+FreeBSD で動作。
+javac, CaffeineMark 3.0 他で動作を確認。
+
+0.2 リリース。
+
+[19980925]
+
+lmul 命令 (64bit 整数の乗算) を、関数呼び出しから自前の実装に切替えた。
+FreeBSD 版 JDK では関数 (__muldi3()) を利用できないので。
+(code.c)
+
+[19980922]
+
+FreeBSD の dlsym() では、shared library を dlopen(..., RTLD_LAZY) した場合に、
+関数のアドレスはその関数が実行されるまで (?) 解決されないようなので、
+関数のアドレスを直接得ようとしているコードを
+sysDynamicLink() を使うようにした。
+(compile.c)
+
+FreeBSD の場合、gentable.rb が constants.c 中の関数テーブルを生成する際に
+関数名の頭の `_' を削除するようにした。
+(gentable.rb)
+
+Linux では sysDynamicLink() で libc 中のシンボルのアドレスを得られるが、
+FreeBSD では得られない。
+得られるように libc を sysAddDLSegment() しておくようにした。
+(compiler.c)
+
+[19980921]
+
+オプション (環境変数 JAVA_COMPILER_OPT で与える)、codesize を用意。
+メソッドごとの、byte code の命令数、サイズ、生成されたコードのサイズの表を
+ファイル `jit_codesize' に出力する。
+(compiler.c, compile.c, compiler.h)
+
+コードサイズの合計、生成されたコード / byte code の比を計算する
+ruby スクリプトを用意。
+(rate_codesize.rb)
+
+[19980920]
+
+0.1 リリース。
+
+[19980919]
+
+アセンブリコードからの関数呼び出し方法を FreeBSD に対応させた。
+stdout、シンボルに付く `_' など。
+(code.h, code.c)
+
+[19980912]
+
+今までは、JIT コンパイラの初期化時に、関数のシンボルがロードされたアドレスを
+native code のテンプレートに書き込んでおくことで、JIT コンパイル時の
+dlsym() (実際は sysDynamicLink()) の呼び出しを削減していた。
+Linux では、dlopen(), dlsym() でアドレスを得た関数のコードを書き換えられるが、
+FreeBSD では Bus Error となるので、上記の最適化を行うか行わないか
+マクロ RESOLVE_SYMBOL_ON_CODE で制御できるようにした。デフォルトは disable。
+(compile.c, compiler.c)
+
+[19980826]
+
+FreeBSD 2.2.5R の /usr/bin/as (GNU assembler 1.92.3) が
+rdtsc 命令を受け付けないので、.byte 0x0f,0x31 にした。
+(x86tsc.c)
+
+[19980824]
+
+code.o の生成時、code.c -> code.s -> code.o とアセンブリコードを
+経由させるのを止めた。
+(Makefile)
+
+[19980823]
+
+FreeBSD でのコンパイルのために若干修整。
+(compile.c, gentable.rb)
+
+[19980817]
+
+環境変数 JAVA_COMPILER_OPT で、JIT compiler に
+オプションを与える仕組みを用意した。
+`,' または ` ' で区切って各オプションを与える。
+(compiler.c, compiler.h)
+オプションとして quiet, outcode を用意。
+(compile.c)
+
+[19980816]
+
+invokeignored_quick 命令で、null check が不要な場合に対応した。
+内部 opcode に invokeignored_nocheck を新設。
+命令の引数の意味を勘違いしていた (pc[2]: チェックが要るかどうか)。
+(code.c, compile.c)
+
+iinc 命令に対する native コードを、
+  MOV 増分,register
+  ADD register,変数
+から
+  ADD 増分,変数
+に変更。
+(code.c, compile.c)
+
+[19980815]
+
+binutils 2.9.1.0.7 の as でアセンブルが通るように修整。
+(code.c)
+
+code.s の postprocess を止めた。
+C コンパイラを gcc 2.7.2.X から egcs 1.0.3 に変更したところ、
+定数の push (マクロ PUSH_CONSTSTR()) のコードが変わったため。
+
+定数配列 opcode_length の要素の型を unsigned short から unsigned char にした。
+SPARC 上の gcc 2.6.3 では、gcc のバグか、
+unsigned short にしておく必要があった。
+(opcodes.pl)
+
+クロック数の計測に備えて x86tsc.o をリンクするようにした。
+x86 の RDTSC 命令を使う。
+(Makefile)
+
+ldiv, lrem, instanceof 命令のコードを多少高速化。
+(code.c)
+
+static でないメソッド呼び出しの場合、メッセージ送信先
+オブジェクトが null かどうか、アセンブラと invokeMethod() で
+2重にチェックしていたのを省いた。
+(runtime.c)
+
+[19980813]
+
+多次元配列の確保 (multianewarray) 後に、次元数を pop し忘れていたのを fix。
+(code.c, compile.c)
+
+[19980810]
+
+メッセージ送信先オブジェクトが null だった場合に
+正しく NullPointerException を throw するようにした。(code.c)
+
+[19980809]
+
+invokevirtual で private method を呼んでいる場合、
+invokespecial のコードを生成するようにした。
+(processAnOpcode() in compile.c)
+tya1.0/demo/TestOpcodeField にて、クラス TestOpcode のメソッドで
+mb->fb.u.offset が 0 のまま初期化されていない
+-> methodtable の index でメソッドを探せないため。
+
+[19980807]
+
+restack を削減した。
+未コンパイルのメソッドか native methods から compiled method を、
+またはその逆の場合にのみ restack する。
+
+[19980803]
+
+new_quick -> new の書き換え相当のことを、
+compiled code でも行うようにした。(code.c, compile.c)
+
+[19980802]
+
+きちんと動作するようになった。
+
+[19980711]
+
+pre-assembled code を C で記述した第 1版が
+あまりに遅い (インタプリタより ;_;) ので、アセンブラを使って書き直し開始。
+
+[19980710]
+
+第 1版がきちんと動いた。
+
+[19980615]
+
+開発を始めた。

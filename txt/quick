@@ -1,0 +1,72 @@
+_quick 疑似命令への変換
+
+[quickFieldAccess() in interpreter.c]
+
+getfield
+  if (offset >= 256) || UseLosslessQuickOpcodes
+    getfield_quick_w
+  else if (long か double)
+    getfield2_quick
+  else
+    getfield_quick
+putfield	getfield と同じ選択方法
+  putfield_quick
+  putfield2_quick
+  putfield_quick_w
+
+[quickStaticAccess() in interpreter.c]
+
+getstatic
+  if (long か double)
+    getstatic2_quick
+  else
+    getstatic_quick
+putstatic	getstatic と同じ選択方法
+  putstatic_quick
+  putstatic2_quick
+
+[quickInvocation() in interpreter.c]
+
+invokespecial
+  if (同一クラスに対する呼び出し)
+    invokenonvirtual_quick
+  else
+    invokesuper_quick
+invokestatic
+  invokestatic_quick
+invokevirtual
+  if private
+    invokenonvirtual_quick
+  else if (offset >= 256) || UseLosslessQuickOpcodes
+    invokevirtual_quick_w
+  else if java.lang.Object のメソッドである
+    invokevirtualobject_quick
+  else
+    invokevirtual_quick
+
+[makeReturnResult() in inline.c]
+
+invoke*?
+  if 呼び出し不要
+    invokeignored_quick
+
+[executeJava()]
+
+ldc
+  ldc_quick
+ldc_w
+  ldc_w_quick
+ldc2_w
+  ldc2_w_quick
+invokeinterface
+  invokeinterface_quick
+instanceof
+  instanceof_quick
+checkcast
+  checkcast_quick
+new
+  new_quick
+anewarray
+  anewarray_quick
+multianewarray
+  multianewarray_quick

@@ -1,0 +1,9 @@
+JVMDI
+
+- JNI に追加された型
+  jthread
+  jthreadGroup
+  jframeID
+    スタックフレームひとつを表すポインタ
+  jlocation
+    64bit, メソッド中の executable position

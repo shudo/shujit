@@ -1,0 +1,6 @@
+#!/bin/sh
+JAVA=java
+
+export NS_JAVA=true
+
+exec $JAVA -Djava.compiler=metavm NET.shudo.metavm.MetaVMServer $*

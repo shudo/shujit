@@ -1,0 +1,158 @@
+リニアなメモリレイアウトの多次元配列
+
+- 目的
+  - JIT による sematic expansion でどこまでできるか。
+
+- todo
+  - メモリレイアウトを決める。
+    次元ごとの配列長の格納場所など。
+
+- 対処が要る処理
+  - 配列の作成
+    - multianewarray
+    - newarray, anewarray の組み合わせによる作成は無視？
+    - 次元ごとの配列長をどう保持するか？
+  - 配列アクセス
+    - aload i, (push index, aaload) x n回,
+        read :  [ilfdabcs]aload
+        write:  何かを push(例: bipush), [ilfdabcs]astore
+  - 配列長の取得 (arraylength)
+    1次元目の長さを返すようにする。
+  - GC
+
+- データフロー解析
+  - ローカル変数の型を知るためには、データフロー解析が要る…
+  - ある時点でスロット n 番に何が入っているか。
+    LocalVariableTable を生成するか。
+  - どうせならデータ依存解析までしたい…きりがない。
+
+- 問題
+  - sub-array へのアクセス
+    - あきらめる？
+    - 必要に応じて配列オブジェクトを作る。
+      あるメモリ領域が複数オブジェクトから参照される。alias。
+        GC が対応する必要あり。
+
+
+[資料]
+
+- オブジェクトを push する命令
+  - フィールドから
+    getfield 等: getfield, getfield_quick, getfield2_quick, getfield_quick_w
+  - ローカル変数から
+    aload 等: aload, aload_[0-3]
+    - LocalVariableTable attribute がない限り、
+      コンパイル時に型情報を得られない。-> データフロー解析が要る。
+(
+  - コンスタントプールから、は有り得ない。
+    ldc 等: ldc, ldc_w (ldc2_w は long, double 型専用)
+    コンスタントプールに入り得るオブジェクトは String 型のみ。
+)
+
+
+- Java コンパイラが生成するバイトコード列
+
+  - 生成:	new int[d0][d1]...[dn-1]
+
+    push (iconst_* or bipush or sipush or ldc) d0
+    ... d1
+    ...
+    ... dn-1
+    multianewarray クラス(2byte) 次元数(1byte)
+
+  - write:	array[d0][d1]...[dn-1] = v
+
+    push array
+    push d0
+    aaload
+    ...
+    push dn-2
+    aaload
+    push dn-1
+    ---------- 以上は write, read で共通
+    push v
+    ?astore
+
+  - read:	array[d0][d1]...[dn-1]
+
+    push d0
+    aaload
+    push d1
+    aaload
+    ...
+    push dn-2
+    aaload
+    push dn-1
+    ---------- 以上は write, read で共通
+    ?aload
+
+
+- 具体的なバイトコード
+
+  - 生成
+    int[][][][][] ary0 = new int[32768][32767][127][5][-1];
+
+   0 ldc #1 <Integer 32768>
+   2 sipush 32767
+   5 bipush 127
+   7 iconst_5
+   8 iconst_m1
+   9 multianewarray #5 dim #5 <Class [[[[[I>
+  13 astore_1
+
+  - write
+    ary[i+2][i*3] = i/4;
+    --- - -		aload_2, iload_1, iconst_2
+        ---		iadd
+    -------		aaload
+             - -	iload_1, iconst_3
+             ---	imul
+                    - -	iload_1, iconst_4
+                    ---	imul
+    -------------------	iastore
+
+   7 aload_2
+
+   8 iload_1
+   9 iconst_2
+  10 iadd
+
+  11 aaload
+
+  12 iload_1
+  13 iconst_3
+  14 imul
+
+  15 iload_1
+  16 iconst_4
+  17 idiv
+
+  18 iastore
+
+  - read
+    ary[3][4][5]
+    ---			aload_1
+        -		iconst_3
+    -----		aaload
+           -		iconst_4
+    --------		aaload
+              -		iconst_5
+    -----------		iaload
+
+  20 aload_1
+
+  21 iconst_3
+  22 aaload
+
+  23 iconst_4
+  24 aaload
+
+  25 iconst_5
+  26 iaload
+
+
+- 定数の push
+  iconst_*:	-1 〜 5
+  bipush:	signed 8 bit
+  sipush:	signed 16 bit
+  ldc:		絶対値がそれ以上

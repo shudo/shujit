@@ -1,0 +1,50 @@
+# $Id$
+
+# command
+
+CI = @ac_ci@
+CO = @ac_co@
+RM = @ac_rm@
+WC = @ac_wc@
+JAVAC = @ac_javac@
+COMPILE.java = ${JAVAC} ${JFLAGS}
+
+
+# sources
+SRC = Protocol.java VMAddress.java Proxy.java \
+	MetaVMServer.java Skeleton.java \
+	ExportTable.java \
+	DistObjectOutputStream.java DistObjectInputStream.java \
+	ByValue.java ByValueUtil.java ByValueWrapper.java \
+	TypeUtil.java \
+	VMOperations.java MetaVM.java \
+	ThreadPool.java ThreadPoolHook.java \
+	LocalClassLoader.java RemoteClassLoader.java \
+	MetaVMController.java \
+	SocketAuthenticator.java AccessController.java AccCtrldServSocket.java\
+	registry/Registry.java \
+	registry/NotBoundException.java	registry/AlreadyBoundException.java
+
+# flags
+JDEBUGFLAGS = -O -g
+JFLAGS = ${JDEBUGFLAGS}
+
+
+all: ${SRC:.java=.class}
+
+include ../../../cmd.mk
+
+clean:
+	${RM} -f *.class */*.class *~ *.bak
+
+
+# Rules
+.java.class:
+	${COMPILE.java} $<
+
+%.class: %.java
+	${COMPILE.java} $<
+
+# for 'make classname'
+%: %.java
+	${COMPILE.java} $<

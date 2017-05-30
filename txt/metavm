@@ -1,0 +1,134 @@
+実行時コンパイラによる Java 仮想マシンの分散オブジェクト対応
+
+todo
+  - 遠隔呼び出しの返り値がきちんと戻るようにする。
+    64 bit 値が怪しい。
+  - ネイティブメソッドを遠隔参照に対応させる。
+    - Object#getClass(), Class#getClassLoader(), ...
+    - 対応が必要なネイティブメソッドを調べる。
+  - 実行ごと(?) のクラスローダを用意し、
+    JVM 内のクラス定義を破棄できるようにする。
+
+アイディア
+  - インスタンス生成先を別スレッドからコントロール。
+    MetaVM#instantiationVM(Thread, VMAddress) の用意。
+  - DSM の実現
+    配列を複数 JVM にまたがって確保できるようにする。
+    キャッシュプロトコル、ブロック単位の転送など。
+
+議論
+  - 配列の扱い。
+    - すべての配列を not copyable、遠隔参照可能にした。
+        -> 遠隔呼び出し時、引数の配列 (Object[]) が Proxy になって困った。
+    - 参照型の配列 ([L..., [[...) を copyable に、
+      primitive type の配列を not copyable にした。
+        -> System.out.println(int型) -> ... -> Integer#toString(int)
+             -> String#<init> -> System#arraycopy で ArrayStoreException。
+    - 配列の遠隔参照はあまり実用的ではない。
+      頻繁に簡単に呼ばれる java.lang.System#arraycopy() で困るので。
+    - 基本型の配列だけは遠隔参照可能、を基本にした。
+    - 再び、すべての配列を遠隔参照可能にした。
+      参照型の配列が copyable だと、
+      単一 JVM での実行とセマンティクスが変わることがあるため。
+  - 遠隔に渡される際に proxy に変化させずにコピーしてしまう条件。
+    VMAddress とそのメンバ InetAddress は proxy に変化させずにコピーしたい。
+    Serializable -> stateless と仮定してしまうのは無理がある。
+  - 分散メモリ型並列計算機上の JVM と見倣せる。
+  - メソッド呼び出しだけサポートする一般的な ORB より透過性が高い。
+    ネットワーク透過性は必要か。
+
+単一 VM での実行との違い
+  - class オブジェクトがマシンごとに存在する。
+    static field の内容が VM ごとに異なり得る。
+    static initializer が呼ばれるタイミング。
+  - native methods からのアクセス
+    例: reflection API, java.lang.System#arraycopy()
+    class オブジェクト -> Class#getClass()。
+    Proxy オブジェクトが Proxy として見える。
+  - 遠隔参照にならずにコピーされるインスタンス。
+    Throwable, String, InetAddress, Number, Boolean, Character
+  - プログラムの終了条件
+    通常は、非 daemon スレッドがなくなった時点。
+  - あらゆるオブジェクトが implements java.io.Serializable となる。
+    Java Platform Core API 標準のシリアライザを使うための制約。
+    Serializable を要求しないシリアライザ (i.e. MOBA) を使うという手もある。
+
+
+コンパイル方法
+  - configure 時に --enable-metavm オプションを付ける。
+  - CLASSPATH に MetaVM.jar か shujit/ を追加する。
+  - libshujit.so ではなく libmetavm.so が得られる。
+
+使用方法
+  - CLASSPATH に shujit/ または MetaVM.jar を追加する。
+  - setenv LD_LIBRARY_PATH <libmetavm.so のある場所>
+  - setenv JAVA_COMPILER metavm
+  - shujit/metavm/bin/metavm を起動しておく。
+
+プロパティ
+  metavm.hostname
+  metavm.port
+  metavm.debug
+  metavm.tcp_nodelay
+  metavm.load_local
+  metavm.bufsize
+
+
+スレッドごとに持たせる情報
+  - Proxy 型オブジェクトがどう見えるかのフラグ: 1 bit (最低)
+  - インスタンス生成場所 (host, port): sizeof(ptr) 4 byte
+
+ExecEnv 中の利用可能スペース。
+  - alloc_cache.cache_pad <- (char[3])
+    pad なので完全にすき間。
+  - union {
+      exception.exc	JHandle * 型
+      exception.addr	unsigned char * 型
+    }
+    例外が throw されると壊れる。
+  - JDK 1.2 の場合:
+    void *RESERVED1;
+    void *RESERVED2;
+
+
+注意
+  - GC
+    - export 中のオブジェクトが回収されないように。
+      表に登録。reference count で管理。
+
+operation
+  インスタンスの生成
+    通常のオブジェクト(1)
+      new
+    (配列)(3)
+      newarray, anewarray, multianewarray
+  アクセス
+    フィールド(2)
+      getfield, putfield
+    (配列)(16)
+      [ailfdbcs]aload, [ailfdbcs]astore
+  (配列長)(1)
+    arraylength
+  メソッド呼び出し(3)
+    invoke{virtual,special,interface}
+  型チェック(2)
+    checkcast, instanceof
+  モニタ関係(2)
+    monitorenter, monitorexit
+
+検討項目
+  - クラスのロード
+  - remote reference の入手方法
+    lookup を用意するか？
+
+通常の ORB と比較
+  - remote reference に対して、
+    メソッド呼び出しだけでなく、フィールドアクセスも可能。
+  - (配列の remote reference も作れる。)
+  - 型に関する制約をなくせる。
+  - stub クラスの生成が不要。
+    RMI: rmic, HORB: horbc コマンド。
+    もっとも、Voyager は stub クラスを自動生成する。
+  - 遠隔操作の性能が高い。
+  - ローカルな操作の性能は低いはず。
+    要評価。

@@ -1,0 +1,51 @@
+[JDK 1.2 での変更点]
+
+- JVMDI の整備による、java_monitor, java_mon() の消失。
+- monitorEnter(obj_monitor(obj)) -> sysMonitorExit(EE2SysThread(ee), obj)
+- JAVA_VERSION, JAVA_MINOR_VERSION が 45, 3 -> 46, 0 に。(oobj.h)
+- struct fieldblock
+  メンバ ID がなくなった。
+- struct methodblock
+  char *terse_signature が追加。
+  code_length, exception_table_length 4バイト -> 2バイト。
+  nexceptions, exceptions が移動。
+- struct Classjava_lang_Class
+  slottable が消失。
+  miranda_mehods が追加。
+  struct cbhash が消失。実質的に使われていなかった。
+  slottbl_size が消失。
+  protection_domain が追加。
+  object_offsets 以降、多数追加。
+- CCF_* 変更多数。
+- struct lineno の縮小。unsigned long x 2 -> unsigned short x 2
+- struct covtable の変更多数。
+- struct localvar のサイズ変更。
+- struct CatchFrame のサイズ、メンバ変更。
+- CONSTANT_POOL_ARRAY_*
+  LENGTH が 4 -> 6
+  CLASSNAME_INDEX:4, SUPERNAME_INDEX:5 が追加。
+
+- 引数の変更。
+  pc2string(), FixupQuickInvocation()
+  マクロ BINCLASS_{LOCK,UNLOCK}: () -> (self)
+
+- モニタの取得法
+  monitorEnter(obj_monitor(obj)) -> monitorEnter2(ee, obj_monitor(obj))
+  obj_monitor の返り値の型が ptr_int -> uintptr_t (Linux 版独自？)。
+  JDK 1.1 for FreeBSD では単に int 型。
+  JavaFrame.monitor の型が、JHandle * -> struct sys_mon *
+
+- javac コマンド
+  javac -g だけでなく javac -g -O でも LocalVariableTable が付くようになった。
+
+- shared library を、
+  環境変数 LD_LIBRARY_PATH に含まれるパスから探さなくなった。
+  jdk1.2/jre/lib/i386/ からのみ？
+
+- class (static) initializer
+  クラス resolve されても InitClass()
+  つまり InitializeForCompiler() は呼ばれない。
+  CCIs(cb, Initialized) でチェックできる。
+
+- GC がレジスタもスキャンするようになった。
+  (scanThread() in gc.c)

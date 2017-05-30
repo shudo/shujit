@@ -1,0 +1,54 @@
+object に対する操作
+
+[any objects]
+
+invokevirtual	0xb6,182	(quick)
+invokespecial	0xb7,183	(quick)
+invokeinterface	0xb9,185	(quick)
+
+checkcast	0xc0,192	(quick)
+instanceof	0xc1,193	(quick)
+
+monitorenter	0xc2,194
+monitrexit	0xc3,195
+
+[normal objects]
+
+getfield	0xb4,180	(quick)
+putfield	0xb5,181	(quick)
+
+new	0xbb,187	(quick)
+
+athrow	0xbf,191
+
+[any arrays]
+
+arraylength	0xbe,190
+
+[arrays of primitive type values]
+
+iaload	0x2e,46
+laload
+faload
+daload	0x31,49
+baload	0x33,51
+caload
+saload	0x35,53
+iastore	0x4f,79
+lastore
+fastore
+dastore	0x52,82
+bastore	0x54,84
+castore
+sastore	0x56,86
+
+newarray	0xbc,188
+
+[arrays of objects]
+
+aaload	0x32,50
+aastore	0x53,83
+
+anewarray	0xbd,189	(quick)
+
+multianewarray	0xc5,197	(quick)

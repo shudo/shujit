@@ -1,0 +1,54 @@
+// config.h.in.  Generated automatically from configure.in by autoheader.
+
+// Version number of JDK
+#undef JDK_VER
+
+// the version of gcc
+#undef GCC_VER
+#undef GCC_VER_STRING
+
+// defined if the libc is glibc2 (libc6)
+#undef GLIBC2
+
+// type of an argument of monitor{Enter,Exit}{,2}
+#undef MONITOR_T
+
+// assembly code or C, which version of interpreter is used
+#ifndef DEBUG
+#undef EXECUTEJAVA_IN_ASM
+#endif
+
+// whether the <stdint.h> exists
+#undef HAVE_STDINT_H
+// whether the <sys/types.h> exists
+#undef HAVE_SYS_TYPES_H
+
+// whether the <asm/ucontext.h> exists
+#undef HAVE_UCONTEXT_H
+
+// whether the JDK_HOME/include(-old)/green_threads exists
+#undef HAVE_GREENTHR_HEADER
+
+// whether POSIX.1b Scheduler Interface is supported
+#undef HAVE_POSIX_SCHED
+
+// defined if compiled for Xbox game console
+#undef XBOX
+
+// defined if the code DB function is enabled
+#undef CODE_DB
+// defined if DB library for code DB is gdbm
+#undef GDBM
+
+// defined if use SSE2 instructions instead of x87
+#undef USE_SSE2
+
+// defined if shuJIT supports thread migration
+#undef MOBA
+
+// defined if shuJIT is built to support MetaVM
+#undef METAVM
+#undef METAVM_NO_ARRAY
+
+// workaround for a bug of FreeBSD JDK 1.3.1 patchlevel 6
+#undef WORKAROUND_FOR_FREEBSD_131P6

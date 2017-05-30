@@ -1,0 +1,27 @@
+× gcc-2.7.2.3
+    5fc6:       8d b3 1c 01 00  leal   0x11c(%ebx),%esi
+    5fcb:       00 
+                        5fc8: R_386_GOTOFF      .rodata
+    5fcc:       ff 36           pushl  (%esi)
+○ egcs-1.0.3	(2.90.29 19980515)
+    5f6e:       ff b3 1c 01 00  pushl  0x11c(%ebx)
+    5f73:       00 
+                        5f70: R_386_GOTOFF      .rodata
+○ egcs-1.1	(2.91.57 19980901)
+    5e84:       ff b3 20 01 00  pushl  0x120(%ebx)
+    5e89:       00 
+                        5e86: R_386_GOTOFF      .rodata
+○ egcs-1.1-2	(2.91.57 19980901)
+    5e84:       ff b3 20 01 00  pushl  0x120(%ebx)
+    5e89:       00 
+                        5e86: R_386_GOTOFF      .rodata
+× egcs-2.92.5-19981015
+    60e8:       8d b3 20 01 00  leal   0x120(%ebx),%esi
+    60ed:       00 
+                        60ea: R_386_GOTOFF      .rodata
+    60ee:       89 f6           movl   %esi,%esi
+    60f0:       ff 36           pushl  (%esi)
+○ egcs-2.92.5-19981018
+    5e84:       ff b3 20 01 00  pushl  0x120(%ebx)
+    5e89:       00 
+                        5e86: R_386_GOTOFF      .rodata

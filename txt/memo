@@ -1,0 +1,541 @@
+Todo
+  - Thread#stop() 対応のために行っているループ中の例外ポーリングは
+    性能的なペナルティがあるため、これを解決する。
+      このポーリングはマクロ EXC_CHECK_IN_LOOP で有効になる。
+  - Native Threads だと Forte for Java 3.0 CE の起動中に
+    様々な箇所でデッドロックする。この問題を解決する。
+    TYA 1.7v3 やインタプリタでも同様。
+      「Loading Applet ...」でよく止まる。
+  - SSE2 対応の性能テスト
+    Math.sqrt(), 四則演算
+  - 特定メソッドの inlining。
+    profiling (javac, Linpack 等) に基づいて。
+      System#arraycopy, Object#getClass, Object#hashCode, String#charAt
+    Math#sin,cos,..., StringBuffer#append
+    % (fmod)
+  - JVM Debugger Interface, JVMProfiler Interface の各種イベントを発生させる。
+    #ifdef HPROF
+    if (jvmpi_event_flags & JVMPI_EVENT_METHOD_ENTRY_ON) {
+	jvmpi_method_entry(ee, o);
+    }
+    #endif /* HPROF */
+  - コンパイル中のメソッドが呼ばれた場合の対策。
+    インタプリタで実行され、_quick への変換が起こり、pctable と食い違う恐れ。
+  - sysMalloc(), sysRealloc() の例外処理。
+  - Win32, Solaris 2 に移植。
+  - UseLosslessQuickOpcodes = FALSE でよいようにする。
+      invokevirtual{,object}_quick で無理がある。
+      インタプリタに実行させた場合に、optop が返り値の分増やされない
+      あらかじめ methodblock を取得する必要があるが、それができない。
+
+調査
+  - SignalError() の第 3引数として文字列を渡しているものを調べあげる。
+  - invokeignored_quick への書き換え規則。
+
+最適化
+  - invokeinterface の性能改善のため、inline cache を実装。
+    およそ、倍の高速化: 1630 -> 860 ms。
+  - スタック上の要素の性質 (例: 配列のサイズ) を trace し、
+    省ける各種チェック (例: 添字の範囲) を省く。仮想スタックライブラリを用意。
+  - 内部命令 direct_invoke 相当の処理を、
+    compileAndInvokeMethod() (invoker.c) で行う。
+  - 内部命令 exc_handler のコードを methodtail の前からどこかへ移し、
+    メソッド末尾の return ではジャンプを不要にする。
+  - メソッド呼び出しから戻った後の、例外の有無チェックを省く。
+  - インライン展開。
+    コンパイル中に、そのメソッドが呼ぶメソッドを途中までコンパイル、
+    PEI の有無やコード長などを調べておく。
+  - peephole 最適化。
+    - ldc2_w, flush_cache, dld -> ...
+    - invokeignored_quick への変換を進める。
+    - [ifa]store{,_N}, [ifa]load{,_N} で、メモリからの読みだしを省く。
+    - lcmp, ifXX といった定番コード列について最適化。
+    - 分解
+      iinc -> 加算, ストア (続くロードを相殺できる)
+      fadd -> ロード, 加算, ストア (前後のストア, ロードを相殺できる)
+  - 浮動小数点数を FPU のレジスタに載せたままにしておく。
+    JVM のレジスタに載せない。
+  - stack 上の倍精度浮動小数点数を 8バイト境界に align する。
+  - VolanoMark を試す。
+  - CM3 に対する compiled code を見る。
+  - クロック数を計測。
+  - invoke{,Synchronized}JavaMethod() の呼び出し回数を減らす。
+      JavaFrame を C のスタック上に確保する。
+      障害:
+        JavaFrame のメンバ ostack と optop が同じ領域にあることを
+        仮定したコードがある。
+        JavaFrame の存在を仮定したコードが多い。
+  - invoke(Synchronized)JavaMethod() の代替を用意、処理を軽減する。
+    排他制御が必要。-> thread library を使ってしまう。
+  - native 命令列の書き換え。
+      invoke -> invokevirtual*object* 相当など。
+        obj_array_methodtable() ではなく obj_methodtable() が使える。
+  - vars[0..] をレジスタにのせてキャッシュする。
+  - lookupswitch 命令の検索アルゴリズムを改良する。
+  - Address Generation Interlock(AGI) (MMX 本 pp.95,99) を避ける。
+  - invokeignored_quick にて、スタックのキャッシュ内容を無駄に push している。
+
+Idea
+  - JVM の挙動を変更する手段としての JIT compiler。
+    javac の、フックをかけられる箇所を探す。-> Jikes を改造？
+
+Done
+  - きちんと StackOverflowError を起こす。
+  - 末尾再帰をメソッド先頭へのジャンプに変換。
+  - JMP 命令の、E9 (引数 4 バイト) から EB (引数 1 バイト) への書き換え
+  - JavaFrame の作成を省く。
+  - メソッド呼び出しの overhead 削減。
+    スタック積み直しを削減。
+    native method を呼ぶ際に restack を減らせる？
+    JIT の frame にする。
+  - invokevirtual を invokespecial に変換。
+  - exception_handler の処理をメソッドごとにコピーしないようにする。
+  - ループの先頭を 16バイト境界に align。
+  - Object#<init> の呼び出しを削除する。
+      invokeignored_quick への recode 条件を調べる。
+  - java.lang.Math#exp を inlining しないように戻す。
+    x86 FPU と JDK 1.2 のインタプリタで結果が微妙に異なるので。
+  - クラスが存在しなかった場合に、JIT コンパイルが失敗するのではなく、
+    ClassNotFoundException, NoClassDefFoundError を発生するコードを生成する。
+  - final フィールドへの putfield, putstatic で
+    IllegalAccessError が発生するようにする。
+    本来は bytecode verifier がはねるべき？
+  - native methods を invoker を経由せず直接呼び出す。
+  - compiled code から getInterfaceMethod() を呼び出した際の例外チェック。
+  - adaptive compilation
+    invocation counter を見てコンパイルを決定する。
+  - JDK 1.1 でも static initializer が呼ばれるタイミングを JLS 通りにする。
+    Matt Welsh wrote:
+    ResolveClassConstant2() with a last argument of 0 (all other arguments the
+    same as ResolveClassConstant()) will resolve the class without
+    initializing it. Then you can call InitClassConstantClass(cp_item_type *cp,
+    unsigned index, struct execenv *ee) to run the initializer later.
+  - クラスを初期化するタイミングを
+    JLS 12.4.1 (When Initialization Occurs) の通りにする。first active use。
+    JDK 1.2 の場合のみ解決。
+  - CompilerContext をむやみに free(), malloc() しない。
+  - invokeMethod() (runtime.c) 中の処理を native code (code.c) に移す。
+    - if (access & ACC_STATIC) obj = (JHandle *)(cbHnadle(method->fb.clazz));
+    - cur_frame->lastpc = ...
+    - stackpointer += (args_size - 1);
+  - コンパイル結果を再利用できるようにする。オプション codedb。
+  - signal を利用して null check を省く。
+  - class initializer をコンパイルしない。
+  - java.lang.Compiler#enable(),disable() が働くようにする。
+    Swing 1.1 の SwingSet でテスト。appleviewer SwingSetApplet.html
+  - __{mul,div,mod}di3 を呼び出さないようにする。
+    64bit 整数の乗算、__muldi3 は自前のコードを用意した。
+    除、剰余算は inline で生成するとコードサイズが大きくなってしまう。
+  - compiled code のサイズの表を作成、表示
+    CODESIZE_DEBUG
+  - invokeignored_quick で pc[2] == 0 の場合、null check コードを省く。
+  - x86 の CMOVcc (および FCMOVcc) の適用を検討する。
+    w/ MMX でない Pentium 以前は {,F}CMOVcc を持たない。
+  - restack を省く。native method の呼び出し時は省けない。
+  - native 命令列の書き換え。
+    new -> new_quick
+  - boudary check, null check などの諸チェックを省いた版も
+    コンパイルできるようにする。
+  - ジャンプ前の state からジャンプ後の state へ移行コードが必要。
+    tableswitch, lookupswitch はトランポリン方式で解決。
+
+strictfp 対応
+  - FX!32 や SoftWindows ではどうしているのか？
+  - 参考。
+    significand(mantissa) の精度
+	single: 24, double: 53, extended: 64
+    significand のbit 数
+	single: 23, double: 52, extended: 64
+    exponent のbit 数
+	single:  8, double: 11, extended: 15
+  - 丸め精度を倍精度にして単精度の除算を行っても、2度丸めの問題は起こり得ない。
+    実験結果: JGFNW の推奨する技法で、
+    0 〜 0x00ffffff / 0x3f800001 (1.0 + e) and 0x3f7fffff (1.0 - e) では、
+    丸め精度が single でも double でも差は出ない。
+  - strictfp。
+    native methods と両立する？
+  - 対象となるバイトコード命令。
+    (fadd, dadd, fsub, dsub,) fmul, dmul, fdiv, ddiv, frem, drem
+    frem, drem は対象とせずともよい。precise に計算できるので。
+  - test suite が欲しい。
+    overflow, underflow およびそれに起因する 2度丸め。
+  - クラスが strictfp だった場合、コンストラクタが strictfp になるか確認。
+  - javac の strictfp 対応。
+    Java 2 SDK 1.3.1 の javac でも対応していない。
+  - C, Fortran などで strictfp。
+  - 参考文献。
+    - Proving the IEEE Correctness of Iterative
+      Floating-Point Square Root, Divide, and Remainder Algorithms,
+      http://www.intel.co.uk/technology/itj/q21998/articles/art_3.htm
+
+移植時の注意
+  - self modify 時の offset
+    new, invokestatic, {get,put}static{,2}
+  - dynamic link 関係
+    - 関数名シンボルが funcname か _funcname か。
+      gentable.rb の挙動を変える。
+    - stdout の libc 中のシンボル。
+      _IO_stdout だったり stdout だったり…
+    - Linux のように、dlopen(..., RTLD_LAZY) なライブラリ中の
+      関数のアドレスを関数実行前に得られるか、FreeBSD のように得られないか。
+        ^- この性質に依存しないコードにした。
+    - dlopen() でロードしたライブラリ中の関数のコードを書き換えられるか。
+      Linux (libc5) でのみ可能。
+    - Linux の JDK のように、libc 中の関数のアドレスを sysDynamicLink() で
+      得られるか、FreeBSD の JDK のように得られないか。
+  - signal 関係
+    - signal handler の引数として struct sigcontext を得られるか？
+      例: JDK for Linux では得られない。
+    - signal handler が呼ばれた際、その signal に対応する handler が
+      リセットされる (FreeBSD) か否か。リセットされるなら要再設定。
+    - signal handler 実行中、その signal が
+      block されている (FreeBSD) か否か。
+      されているなら handler からのジャンプ時に要 unblock (sigprocmask(2))。
+
+注記
+  - stack 上の要素が実行環境依存になる。
+    jsr, ret 命令
+  - JVM と X86 でスタックの成長方向が逆。
+    64bit (long,double) の値の 32bit x 2 への分割方法は
+    JVM の仕様としては未定義(!)。
+
+JVM, JIT compiler のテスト
+  - JDK の regression test: javasrc/test/
+  - Kaffe のもの
+  - libgcj のもの
+  - Mauve プロジェクト
+
+known bugs
+  - 何かの理由でメソッドのコンパイルが失敗した場合に…
+  - 無限ループ実行中のスレッドが、
+    他スレッドから Thread#stop() しても実行停止しない。
+    (genunix/java/green_threads/src/threads_md.c:
+     sysThreadPostException() も効かない。)
+    他の JIT (Win32, Sol2) with Green Threads ではどうか調べる。
+      TYA 1.0 でも同じ現象が起きる。
+
+TYA 1.4 の bugs
+  - 上記 known bugs。:)
+  - final フィールドへの putfield, putstatic で
+    IllegalAccessError が発生しない。
+  - IncompatibleChangeError が発生すべき状況で
+    NullPointerException が発生する。
+  - クラス初期化のタイミングが言語仕様と異なる。
+  - 5 次元以上の配列を作成するコードをコンパイルできない。JVM ごと終了する。
+
+JDK 1.1.6, Version 2 (by Steve Byrne)
+  - native method, sun.awt.motif.MChoicePeer#pReshape (IIII)V
+    at sun/awt/motif/MChoicePeer#pReshape (IIII)V
+    at sun/awt/motif/MComponentPeer#setBounds (IIII)V
+    (javasrc/src/genunix/sun/awt_Choice.c l.348)
+    にてエラーメッセージ
+      Tried to free bogus memory XXXXXXX, ignored
+    Motif or Xt のバグ。JDK/README.linux の Other issues に記述あり。
+    JDK/demo/awt-1.1/symboltest/ にて、appletviewer index.html でテスト。
+
+旧版 (未公開) の bugs
+  - exception_handler にて、スタックをクリアした後、
+    例外オブジェクトを push していない
+  - secondPass() にて goto_w で offset を 2バイトで解釈している。
+  - compileOpcode in compile.c にて、
+    invokevirtual{,object}_quick の定数解決が足りない。
+    <- UseLosslessQuickOpcodes = FALSE なので、手をつけようがない。
+  - showObjectBody() in runtime.c が、null object に対応していない。
+
+各 (内部) 命令で行われている各種チェック
+  - iaload, laload, baload, caload, saload, iastore, bastore, castore, sastore
+	null, boundary
+  - aastore
+	null, boundary, instanceof
+  - getfield, getfield2, putfield, putfield2
+	null
+  - invokevirtual, invokespecial, invokeinterface
+	null
+  - new
+	class access
+  - newarray, anewarray
+	negative array size
+  - arraylength
+	null
+  - athrow
+	null
+  - monitorenter, monitorexit
+	null
+  - nonnull_quick
+	null
+
+各種チェックに関係する内部命令およびマクロ in code.c
+  array_check, AASTORE_TEST(), FIELD_ACC(),
+  NEW_TEST(), NEWARRAY_TEST(), ARRAYLENGTH_TEST(),
+  NULL_TEST()
+
+null check
+  OS の差異
+    Linux 2.2, 2.1:	struct sigcontext
+    Linux 2.0:		struct sigcontext_struct
+    FreeBSD:		struct sigcontext
+    レジスタの並びが Linux, FreeBSD で異なる。Linux 2.0, 2.1, 2.2 では同じ。
+  null check (NULL_TEST*) を含む命令
+    NULL_TEST
+      ARRAY_CHECK
+        array_check
+        lastore
+      FIELD_ACC
+        getfield
+        getfield2
+        PUTFIELD_ST24
+          putfield
+          PUTFIELD2_ST24
+          putfield2
+      TGTOBJ_VIRTUAL
+        invokevirtual
+        TGTOBJ_SPECIAL
+          invokespecial
+        TGTOBJ_INTERFACE
+          invokeinterface
+      arraylength
+      ATHROW
+        athrow
+      MONITOR
+        monitorenter
+        monitorexit
+      nonnull_quick
+
+
+実行環境中立な実行コンテクストの取り出し
+  code.c
+    invoke* にて ee->current_frame->lastpc を設定。
+
+
+アーキテクチャ依存のコード
+  code.c
+  code.h
+    assembly code
+    self rewrite のためのオフセット (*_REWRITE_OFFSET)
+  gentable.rb
+    compiledCode() in code.c 中の定数抽出、オフセット計算
+  compile.c
+    jump 命令の生成 (in writeForAnOpcode())
+  invoker.c
+    スタックの積み直し (JVM -> native)
+  runtime.c
+    スタックの積み直し (native -> JVM)
+非依存のコード
+  compiler.[hc]
+  computil.c
+
+
+データ構造
+  struct CatchFrame *cf = mb->exception_table;
+    cf->compiled_CatchFrame = (void *)オフセット in native code;
+
+
+コンパイルの手順
+
+  makePCTable()
+    命令の分解
+    method head, exc. handler, method tail の付加
+    processAnOpcode()
+      内部 opcode を求める
+      内部 opcode, bytecode PC を表に登録
+      bytecode PC を update
+  makeBlockStructure()
+    basic block を検出する
+  peepholeOptimization()
+    peephole 最適化
+
+  methodInlining()
+  eagerCompilation()
+    invokespecial, static, static_quick の呼び出し先をコンパイル
+    コンパイルに成功したら、内部命令 invoke_core を
+    invoke_core_compiled に置き換える
+  updateStates()
+    stack state を設定
+  writeCode()
+    writeForAnOpcode()
+      native code をバッファに書く
+      jump 命令
+	状態遷移コードを挿入
+	表に登録
+      定数 (static) を解決
+      native PC を update
+  resolveJumpInstructions()
+    jump 表を解決
+  resolveExcRetSwitch()
+    以下を解決
+      bytepcoff
+      exc. handler への jump
+      method tail への jump
+      tableswitch, lookupswitch の native PC 表を作成
+  native code をコピー
+  (native code を保存)
+
+  resolveDynamicConstants()
+    定数 (dynamic) を解決
+  makeExcTable()
+    例外表に native PC (offset), handler の初期 state を書き込む
+  resolveFunctionSymbols()
+    関数呼び出しを解決
+
+定数
+  bipush
+    value
+  ldc2_w
+    val[32:63], val[0:31]
+  iload
+    index * 4
+  lload
+    index * 4, (index + 1) * 4
+  istore
+    index * 4
+  lstore
+    index * 4, (index + 1) * 4
+  iinc
+    (signed char *pc)[2], pc[1] * 4
+  jsr
+    native offset of a next instruction
+  ret
+    index * 4
+  tableswitch
+    low, high, <table offset>
+  lookupswitch
+    npairs, <table offset>
+  getstatic
+    address
+  getstatic2
+    address, address + 4
+  putstatic
+    address
+  putstatic2
+    address, address + 4
+  getfield
+    slot
+  getfield2
+    slot
+  putfield
+    slot
+  putfield2
+    slot
+  inv_head
+    args_size
+  invokevirtual
+  invokevirtual_obj
+    slot
+  invokespecial
+  invokestatic
+    method
+  invokeinterface
+    guessptr, imethod
+  inv_spe_varspace
+  inv_stq_varspace
+    local_var_space
+  invokestatic_quick
+    method
+  invoke_recursive
+    args_size
+  inlined_enter
+    args_size, 4 * nlocals
+  inlined_exit
+    -4 * (args_size + nlocals)
+  new
+    cb
+  newarray
+    type
+  anewarray
+    elem_clazz
+  checkcast
+    cb
+  instanceof
+    cb
+  multianewarray
+    dimensions, arrayclazz
+  invokeignored_quick
+    args_size
+  new_quick
+    cb
+
+jump
+  ifeq, ne, lt, ge, gt, le
+    JP_ROP " " STR(ADDR_JP)
+  if_icmpeq, ne, lt, ge, gt, le
+    JP_ROP " " STR(ADDR_JP)
+  goto
+    jmp   STR(ADDR_JP)
+  jsr
+    jmp   STR(ADDR_JP)
+  ret
+    __asm__("addl  %0,%%eax\n\t"		/* eax += nativecode */
+	    "jmp   %%eax" :
+	    : "m" (nativecode));
+  ifnull
+    jz    STR(ADDR_JP)
+  ifnonnull
+    jnz   STR(ADDR_JP)
+
+条件分岐
+  ifeq, ne, lt, ge, gt, le
+  if_icmpeq, ne, lt, ge, gt, le
+  ifnull
+  ifnonnull
+  tableswitch
+  lookupswitch
+ジャンプ
+  goto
+  jsr
+?
+  ret
+
+x86 jump instructions
+je
+  74 XX
+  0f 84 XX XX XX XX
+jne
+  75
+  0f 85
+jl
+  7c
+  0f 8c
+jge
+  7d
+  0f 8d
+jg
+  7f
+  0f 8f
+jle
+  7e
+  0f 8e
+jz == je
+jnz == jne
+jmp
+  eb
+  e9
+
+ex) ifeq 4 -> 2
+  code_ifeq
+    (cmpl 含む)
+  jne
+  state_to2(state:4)
+  jmp ジャンプ先
+ex) ifeq 4 -> 4
+  code_ifeq
+    (cmpl 含む)
+  je ジャンプ先
+
+
+callee head: 8 byte
+  55		pushl %ebp
+  89 e5		movl  %esp,%ebp
+  83 ec XX	subl  $0xXX,%esp
+  57		pushl %edi
+  56		pushl %esi
+( 53		pushl %ebx)
+
+callee tail: 7 byte
+  8d 65 YY	leal  0xffffffYY(%ebp),%esp
+( 5b		popl  %ebx)
+  5e		popl  %esi
+  5f		popl  %edi
+  c9		leave
+  c3		ret
+
+0xYY = 0x100 - 0xXX - (4 * pushしたレジスタ数)

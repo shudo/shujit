@@ -1,0 +1,94 @@
+# makefile for native part of MetaVM
+# $Id$
+
+# environment
+
+JDK_VER = @ac_jver@
+J_INCDIR = @ac_jincdir@
+
+# command
+
+CC = @ac_cc@
+CI = @ac_ci@
+CO = @ac_co@
+MV = @ac_mv@
+RM = @ac_rm@
+WC = @ac_wc@
+JAVAH = @ac_javah@
+ifeq (${JDK_VER}, 11)
+JAVAH_OLD = ${JAVAH}
+JAVAH_JNI = ${JAVAH} -jni
+else
+JAVAH_OLD = ${JAVAH} -old
+JAVAH_JNI = ${JAVAH}
+endif
+
+
+INCDIR = -I${J_INCDIR} -I${J_INCDIR}/linux -I${J_INCDIR}/genunix -I${J_INCDIR}/freebsd -I.
+
+CDEBUGFLAGS = -O2
+CFLAGS = -pipe -fPIC ${CDEBUGFLAGS} ${INCDIR}
+
+OBJS = objectid.o vmop.o controller.o proxy.o byvalue.o type.o nativemtd.o
+
+
+all: headers_of_primitive_types NET_shudo_metavm_Proxy_old.h NET_shudo_metavm_VMAddress_old.h ${OBJS}
+
+headers_of_primitive_types: java_lang_Boolean_old.h java_lang_Byte_old.h java_lang_Character_old.h java_lang_Short_old.h java_lang_Integer_old.h java_lang_Long_old.h java_lang_Float_old.h java_lang_Double_old.h
+
+include ../cmd.mk
+
+clean:
+	${RM} -f ${TARGET} ${OBJS} *~ java_*.h NET_shudo_metavm_*.[hc]
+
+wc:
+	${WC} *.[hc]
+
+
+metavm.h: NET_shudo_metavm_VMAddress_old.h
+objectid.o: NET_shudo_metavm_ObjectID.h
+vmop.o: NET_shudo_metavm_VMOperations.h
+controller.o: NET_shudo_metavm_MetaVM.h
+proxy.o: NET_shudo_metavm_Proxy.h NET_shudo_metavm_VMAddress_old.h
+type.o: NET_shudo_metavm_TypeUtil.h
+
+NET_shudo_metavm_ObjectID.h: ../NET/shudo/metavm/ObjectID.class
+	$(JAVAH_JNI) NET.shudo.metavm.ObjectID
+NET_shudo_metavm_VMOperations.h: ../NET/shudo/metavm/VMOperations.class
+	$(JAVAH_JNI) NET.shudo.metavm.VMOperations
+NET_shudo_metavm_MetaVM.h: ../NET/shudo/metavm/MetaVM.class
+	$(JAVAH_JNI) NET.shudo.metavm.MetaVM
+NET_shudo_metavm_TypeUtil.h: ../NET/shudo/metavm/TypeUtil.class
+	$(JAVAH_JNI) NET.shudo.metavm.TypeUtil
+NET_shudo_metavm_Proxy.h: ../NET/shudo/metavm/Proxy.class
+	$(JAVAH_JNI) NET.shudo.metavm.Proxy
+NET_shudo_metavm_Proxy_old.h: ../NET/shudo/metavm/Proxy.class
+	$(JAVAH_OLD) NET.shudo.metavm.Proxy
+	$(MV) NET_shudo_metavm_Proxy.h NET_shudo_metavm_Proxy_old.h
+NET_shudo_metavm_VMAddress_old.h: ../NET/shudo/metavm/VMAddress.class
+	$(JAVAH_OLD) NET.shudo.metavm.VMAddress
+	$(MV) NET_shudo_metavm_VMAddress.h NET_shudo_metavm_VMAddress_old.h
+java_lang_Boolean_old.h:
+	$(JAVAH_OLD) java.lang.Boolean
+	$(MV) java_lang_Boolean.h java_lang_Boolean_old.h
+java_lang_Byte_old.h:
+	$(JAVAH_OLD) java.lang.Byte
+	$(MV) java_lang_Byte.h java_lang_Byte_old.h
+java_lang_Character_old.h:
+	$(JAVAH_OLD) java.lang.Character
+	$(MV) java_lang_Character.h java_lang_Character_old.h
+java_lang_Short_old.h:
+	$(JAVAH_OLD) java.lang.Short
+	$(MV) java_lang_Short.h java_lang_Short_old.h
+java_lang_Integer_old.h:
+	$(JAVAH_OLD) java.lang.Integer
+	$(MV) java_lang_Integer.h java_lang_Integer_old.h
+java_lang_Long_old.h:
+	$(JAVAH_OLD) java.lang.Long
+	$(MV) java_lang_Long.h java_lang_Long_old.h
+java_lang_Float_old.h:
+	$(JAVAH_OLD) java.lang.Float
+	$(MV) java_lang_Float.h java_lang_Float_old.h
+java_lang_Double_old.h:
+	$(JAVAH_OLD) java.lang.Double
+	$(MV) java_lang_Double.h java_lang_Double_old.h

@@ -1,0 +1,106 @@
+SONY PCG-505EX
+	Pentium/233MHz
+	libc5.4.44
+
+
+[TYA 付属のもの]
+
+* "Linux_JDK_1.1.7_v1a_green_threads"
+			plain	TYA12	981212	981228
+Sieve			97	316	399	400	times
+TestOpcodeField		4139	1307	1307	1308	msec
+TestOpcodeStatic	3065	428	257	278	msec
+TestFinalStatic		11942	2100	772	772	msec
+Iview Valetta.jpg	438	463	507	514	msec
+
+* JDK 1.1.6v5 for Linux (ported by Steve Byrne)
+			plain	TYA11v3	shuJIT023
+Sieve			97	317	400	times
+TestOpcodeField		4138	1308	1308	msec
+TestOpcodeStatic	3087	514	278	msec
+TestFinalStatic		11878	5618	5235	msec
+Iview Valetta.jpg	441	463	505	msec
+	FIELD_ACC() から NULL_TEST() を省いた shuJIT で TestOpcodeField は 1201
+
+
+[Linpack Benchmark -- Java Version]
+
+* 117v1a
+plain	TYA12	shuJIT981228
+1.918	5.049	5.323
+
+* 116v5
+plain	TYA11v4	shuJIT023
+1.918	5.086	5.323
+
+
+[E2 1MB 暗号化]
+java EvalLargeData
+
+* 117v1a
+	plain	TYA12	981212	981228
+128	806	326	359	383
+192	800	314	349	371
+256	800	314	346	370
+
+* 116v5
+	plain	TYA11v3	shuJIT023
+128	792	304	350(280)	msec
+192	788	307	350(284)	msec
+256	797	303	346(279)	msec
+			()内は NO_CHECK 版
+
+
+[CaffeineMark 3.0]
+
+interpreter
+	116v2	116v5	117v1a
+Sieve	434	436	439
+Loop	499	484	484
+Logic	504	501	501
+String	821	773	780
+Float	444	443	444
+Method	464	466	467
+Graphics791	671	670
+Image	162	267	389
+Dialog	93	86	98
+CM3	392	399	423
+
+TYA	(1.2 から 117v1a)
+	1.0	1.1	1.1v3	1.2
+Sieve	820	818	817	825
+Loop	1564	1562	1546	1547
+Logic	2990	2897	2921	2899
+String	1479	1456	1416	1382
+Float	1072	988	989	994
+Method	842	910	906	887
+Graphics729	712	677	703
+Image	560	281	241	393
+Dialog	95	87	88	93
+CM3	835	759	740	787
+
+shuJIT	(981227 から 117v1a)
+	0.2.3	981227	981228
+Sieve	893	892	893
+Loop	1708	1706	1716
+Logic	2919	2888	2916
+String	1030	1014	1028
+Float	932	925	920
+Method	137	150	155
+Graphics515	503	471
+Image	74	304	448
+Dialog	85	89	84
+CM3	498	588	609
+
+	8/18	NO_CHECK(8/19)
+Sieve	895	960	*2
+Loop	1717	2048	*1
+Logic	2919	2902
+String	1034	1044
+Float	1038	1317	*1
+Method	120	138
+Graphics529	686	*2
+Image	503	226	ばらつく
+Dialog	86	91
+CM3	618	628
+			*1 効果大 *2 効果そこそこ
