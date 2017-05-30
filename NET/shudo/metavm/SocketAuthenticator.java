@@ -35,9 +35,9 @@ import java.util.StringTokenizer;
 
 
 /**
- * identd $B$J$I$N(B Authentication Server (RFC931) $B$+$i(B
- * OS$BL>!"%f!<%6(BID $B$rF@$k%/%i%9!#(B<BR>
- * UDP $B$G$O$J$/(B TCP $B$rMxMQ!#(B
+ * identd などの Authentication Server (RFC931) から
+ * OS名、ユーザID を得るクラス。<BR>
+ * UDP ではなく TCP を利用。
  */
 public class SocketAuthenticator {
   private static final String COMMAND = "portident";
@@ -62,16 +62,16 @@ public class SocketAuthenticator {
   }
 
   /**
-   * Auth. Server $B$+$i(B OS$BL>!"%f!<%6(BID $B$rF@$k!#(B<BR>
-   * $B<:GT$7$?>l9g$O(B IOException $B$r(B throw $B$9$k!#(B<BR>
-   * $B;XDj$5$l$?%]!<%H$rMxMQ$7$F$$$k%f!<%6$,$$$J$+$C$?>l9g$O(B
-   * SocketAuthenticator#isNoUser() $B$,??$rJV$9$h$&$K$J$k!#(B
+   * Auth. Server から OS名、ユーザID を得る。<BR>
+   * 失敗した場合は IOException を throw する。<BR>
+   * 指定されたポートを利用しているユーザがいなかった場合は
+   * SocketAuthenticator#isNoUser() が真を返すようになる。
    *
    * @see isNoUser()
    */
   public SocketAuthenticator(InetAddress addr, int localPort, int remotePort)
 	throws IOException {
-    // Auth. Server $B$K@\B3(B
+    // Auth. Server に接続
     Socket authSock;
     authSock = new Socket(addr, AUTH_PORT);	// throws IOException
 
@@ -88,7 +88,7 @@ public class SocketAuthenticator {
 //System.out.println("res: " + responce);
     }	// throws IOException
 
-    // $B2r@O(B
+    // 解析
     StringTokenizer tokenizer = new StringTokenizer(
 	responce.substring(responce.indexOf(':') + 1), " :\t\n\r");
     int numToken = tokenizer.countTokens();
@@ -121,22 +121,22 @@ public class SocketAuthenticator {
 
 
   /**
-   * Auth. Server $B$N%l%s%9%]%s%9$rJV$9!#(B
+   * Auth. Server のレンスポンスを返す。
    */
   public String responce() { return responce; }
 
   /**
-   * OS$BL>(B $B$rJV$9!#(B
+   * OS名 を返す。
    */
   public String OSName() { return OSName; }
 
   /**
-   * $B%f!<%6(BID $B$rJV$9!#(B
+   * ユーザID を返す。
    */
   public String userID() { return userID; }
 
   /**
-   * $B%3%s%9%H%i%/%?$G;XDj$7$?%]!<%H$rMxMQ$7$F$$$k%f!<%6$,$$$J$1$l$P??!#(B
+   * コンストラクタで指定したポートを利用しているユーザがいなければ真。
    */
   public boolean isNoUser() { return error; }
 
